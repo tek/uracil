@@ -70,6 +70,30 @@ dependencies:
 library:
  source-dirs: lib
 
+executables:
+ uracil:
+  main: Main.hs
+  source-dirs: app
+  ghc-options:
+  - -threaded
+  - -rtsopts
+  - -with-rtsopts=-N
+  dependencies:
+  - uracil
+
+tests:
+  uracil-unit:
+    main: SpecMain.hs
+    source-dirs: test/u
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - uracil
+    - ribosome-test
+    - HTF
+
 default-extensions:
 - AutoDeriveTypeable
 - BangPatterns
@@ -113,27 +137,3 @@ default-extensions:
 - TypeSynonymInstances
 - UnicodeSyntax
 - ViewPatterns
-
-executables:
- uracil:
-  main: Main.hs
-  source-dirs: app
-  ghc-options:
-  - -threaded
-  - -rtsopts
-  - -with-rtsopts=-N
-  dependencies:
-  - uracil
-
-tests:
-  uracil-unit:
-    main: SpecMain.hs
-    source-dirs: test/u
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - uracil
-    - ribosome-test
-    - HTF

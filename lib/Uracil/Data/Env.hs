@@ -9,16 +9,18 @@ import Ribosome.Control.Monad.Ribo (Ribo)
 import Ribosome.Orphans ()
 
 import Uracil.Data.Error (Error)
+import Uracil.Data.Yank (Yank)
 
 type Uracil a = Ribo Env Error a
 
 data Env =
   Env {
-    _tempDir :: Path Abs Dir
+    _yanks :: [Yank],
+    _deletes :: [Yank]
   }
   deriving Show
 
 deepLenses ''Env
 
 instance Default Env where
-  def = Env [absdir|/tmp/uracil|]
+  def = Env def def
