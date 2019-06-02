@@ -41,6 +41,8 @@ Several actions can be performed through mappings:
 
 * `p` insert the yank after the cursor position. Whether the paste is line-wise or character-wise depends on how it was
   yanked.
+* `P` insert the yank before the cursor position.
+* `y` load the yank into to `"` register.
 
 [Neovim]: https://github.com/neovim/neovim
 [Haskell]: https://www.haskell.org

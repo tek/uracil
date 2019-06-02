@@ -19,7 +19,7 @@ import Ribosome.Menu.Prompt.Run (basicTransition)
 import Ribosome.Menu.Run (nvimMenu)
 import Ribosome.Menu.Simple (defaultMenu, menuQuit, menuQuitWith, selectedMenuItem)
 import Ribosome.Msgpack.Error (DecodeError)
-import Ribosome.Nvim.Api.IO (vimGetVvar)
+import Ribosome.Nvim.Api.IO (vimCallFunction, vimGetVvar)
 
 import Uracil.Data.Env (Env)
 import qualified Uracil.Data.Env as Env (yanks)
@@ -71,3 +71,20 @@ yankByIdent ident =
   where
     lens =
       Env.yanks . Lens.folded . Lens.filtered (sameIdent ident)
+
+loadYank ::
+  NvimE e m =>
+  Text ->
+  Yank ->
+  m ()
+loadYank register (Yank _ _ tpe text) =
+  vimCallFunction "setreg" [toMsgpack register, toMsgpack text, toMsgpack tpe]
+
+loadYankIdent ::
+  NvimE e m =>
+  MonadDeepState s Env m =>
+  MonadDeepError e YankError m =>
+  Ident ->
+  m ()
+loadYankIdent =
+  loadYank "\"" <=< yankByIdent

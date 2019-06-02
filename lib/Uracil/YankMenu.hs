@@ -1,6 +1,6 @@
 module Uracil.YankMenu where
 
-import Chiasma.Data.Ident (identText, parseIdent)
+import Chiasma.Data.Ident (Ident, identText, parseIdent)
 import Conduit (yieldMany)
 import qualified Control.Lens as Lens (view)
 import Data.List.NonEmpty (NonEmpty, nonEmpty)
@@ -17,9 +17,9 @@ import Ribosome.Menu.Prompt.Data.PromptConfig (PromptConfig(PromptConfig))
 import Ribosome.Menu.Prompt.Nvim (getCharC, nvimPromptRenderer)
 import Ribosome.Menu.Prompt.Run (basicTransition)
 import Ribosome.Menu.Run (nvimMenu)
-import Ribosome.Menu.Simple (defaultMenu, menuQuitWith, menuQuitWith, selectedMenuItem)
+import Ribosome.Menu.Simple (MappingHandler, Mappings, defaultMenu, menuQuitWith, menuQuitWith, selectedMenuItem)
 import Ribosome.Msgpack.Error (DecodeError)
-import Ribosome.Nvim.Api.IO (vimGetVvar)
+import Ribosome.Nvim.Api.IO (vimGetCurrentWindow, vimGetVvar, windowGetHeight)
 
 import Uracil.Data.Env (Env)
 import qualified Uracil.Data.Env as Env (yanks)
@@ -27,35 +27,70 @@ import Uracil.Data.RegEvent (RegEvent(RegEvent))
 import Uracil.Data.Yank (Yank(Yank))
 import Uracil.Data.YankError (YankError)
 import qualified Uracil.Data.YankError as YankError (YankError(Empty, InvalidMenuIndex))
-import Uracil.Paste (pasteIdent)
-import Uracil.Yank (yanks)
+import Uracil.Paste (pasteIdent, ppasteIdent)
+import Uracil.Yank (loadYankIdent, yanks)
+
+menuAction ::
+  NvimE e m =>
+  MonadDeepState s Env m =>
+  MonadDeepError e YankError m =>
+  (Ident -> m ()) ->
+  Menu ->
+  Prompt ->
+  m (MenuConsumerAction m (), Menu)
+menuAction action m _ = do
+  ident <- Lens.view MenuItem.ident <$> hoistMaybe YankError.InvalidMenuIndex item
+  menuQuitWith (action (parseIdent ident)) m
+  where
+    item =
+      selectedMenuItem m
+
+menuYank ::
+  NvimE e m =>
+  MonadDeepState s Env m =>
+  MonadDeepError e YankError m =>
+  MappingHandler m ()
+menuYank =
+  menuAction loadYankIdent
 
 menuPaste ::
   NvimE e m =>
   MonadDeepState s Env m =>
   MonadDeepError e YankError m =>
-  Menu ->
-  Prompt ->
-  m (MenuConsumerAction m (), Menu)
-menuPaste m _ = do
-  ident <- Lens.view MenuItem.ident <$> hoistMaybe YankError.InvalidMenuIndex item
-  menuQuitWith (pasteIdent (parseIdent ident)) m
-  where
-    item =
-      selectedMenuItem m
+  MappingHandler m ()
+menuPaste =
+  menuAction pasteIdent
 
-yankMenuItems :: [Yank] -> [MenuItem]
-yankMenuItems yanks =
+menuPpaste ::
+  NvimE e m =>
+  MonadDeepState s Env m =>
+  MonadDeepError e YankError m =>
+  MappingHandler m ()
+menuPpaste =
+  menuAction ppasteIdent
+
+yankMenuItems :: Int -> [Yank] -> [MenuItem]
+yankMenuItems width yanks =
   uncurry menuItem <$> zip yanks [0..]
   where
     menuItem (Yank ident _ _ (line' : rest)) index =
-      MenuItem (identText ident) (Text.take 30 line' <> dots line' <> count rest)
+      MenuItem (identText ident) (Text.take maxlen line' <> dots line' <> count rest)
     dots line' =
-      if Text.length line' > 30 then "..." else ""
+      if Text.length line' > maxlen then "..." else ""
     count [] =
       ""
     count ls =
       " [" <> show (length ls + 1) <> "]"
+    maxlen =
+      width - 6
+
+yankMenuMappings ::
+  NvimE e m =>
+  MonadDeepState s Env m =>
+  MonadDeepError e YankError m =>
+  Mappings m ()
+yankMenuMappings =
+  Map.fromList [("p", menuPaste), ("P", menuPpaste), ("y", menuYank)]
 
 uraYankMenu ::
   NvimE e m =>
@@ -65,14 +100,15 @@ uraYankMenu ::
   MonadDeepError e YankError m =>
   MonadDeepError e DecodeError m =>
   m ()
-uraYankMenu =
-  void $ run =<< yankMenuItems <$> yanks
+uraYankMenu = do
+  width <- windowGetHeight =<< vimGetCurrentWindow
+  void $ run =<< yankMenuItems width <$> yanks
   where
     run [] =
       throwHoist YankError.Empty
     run items =
       nvimMenu def (yieldMany items) handler promptConfig
     handler =
-      defaultMenu (Map.fromList [("p", menuPaste)])
+      defaultMenu yankMenuMappings
     promptConfig =
       PromptConfig (getCharC 0.033) basicTransition nvimPromptRenderer False

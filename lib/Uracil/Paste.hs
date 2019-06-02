@@ -6,15 +6,30 @@ import Ribosome.Nvim.Api.IO (vimCallFunction, vimCommand)
 import Uracil.Data.Env (Env)
 import Uracil.Data.Yank (Yank(Yank))
 import Uracil.Data.YankError (YankError)
-import Uracil.Yank (yankByIdent)
+import Uracil.Yank (loadYank, yankByIdent)
+
+pasteWith ::
+  NvimE e m =>
+  Text ->
+  Yank ->
+  m ()
+pasteWith cmd yank =
+  loadYank "\"" yank *>
+  vimCommand ("normal! " <> cmd)
 
 paste ::
   NvimE e m =>
   Yank ->
   m ()
-paste (Yank _ _ tpe text) = do
-  () <- vimCallFunction "setreg" [toMsgpack ("\"" :: Text), toMsgpack text, toMsgpack tpe]
-  vimCommand "normal! p"
+paste =
+  pasteWith "p"
+
+ppaste ::
+  NvimE e m =>
+  Yank ->
+  m ()
+ppaste =
+  pasteWith "P"
 
 pasteIdent ::
   NvimE e m =>
@@ -24,6 +39,15 @@ pasteIdent ::
   m ()
 pasteIdent =
   paste <=< yankByIdent
+
+ppasteIdent ::
+  NvimE e m =>
+  MonadDeepState s Env m =>
+  MonadDeepError e YankError m =>
+  Ident ->
+  m ()
+ppasteIdent =
+  ppaste <=< yankByIdent
 
 uraPaste :: m ()
 uraPaste =

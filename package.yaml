@@ -50,7 +50,7 @@ dependencies:
 - regex-with-pcre
 - relude
 - resourcet
-- ribosome >= 0.3
+- ribosome
 - split
 - stm-chans
 - stm-conduit
