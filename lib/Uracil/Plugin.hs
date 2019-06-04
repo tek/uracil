@@ -28,7 +28,7 @@ rpcHandlers =
 
 plugin' :: Ribosome Env -> Plugin (Ribosome Env)
 plugin' env =
-  riboPlugin "ura" env rpcHandlers [] handleError Map.empty
+  riboPlugin "uracil" env rpcHandlers [] handleError Map.empty
 
 plugin :: Neovim e NeovimPlugin
 plugin =
