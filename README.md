@@ -58,7 +58,7 @@ Paste the most recently yanked text, basically like the regular `p` or using `p`
 Repeatedly calling this function cycles through the yank history, each time calling `undo` and pasting the next entry.
 A floating window containing the yank history is displayed at the cursor.
 
-After the time configured by [`g:uracil_paste_timeout`](#g-uracil-paste-timeout) has passed, the window is hidden and
+After the time configured by [`g:uracil_paste_timeout`](#guracil-paste-timeout) has passed, the window is hidden and
 the currently pasted entry is reset, so that a subsequent paste starts from the top.
 
 [Neovim]: https://github.com/neovim/neovim
@@ -66,3 +66,5 @@ the currently pasted entry is reset, so that a subsequent paste starts from the 
 [ribosome]: https://github.com/tek/ribosome
 [chromatin]: https://github.com/tek/chromatin
 [nvim-hs]: https://github.com/neovimhaskell/nvim-hs
+[nvim-hs.vim]: https://github.com/neovimhaskell/nvim-hs.vim
+[stack]: https://docs.haskellstack.org/en/stable/README
