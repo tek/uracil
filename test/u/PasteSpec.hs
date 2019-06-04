@@ -5,6 +5,7 @@ module PasteSpec (htf_thisModulesTests) where
 import qualified Chiasma.Data.Ident as Ident (Ident(Str))
 import qualified Data.List.NonEmpty as NonEmpty (toList)
 import Ribosome.Api.Buffer (currentBufferContent)
+import Ribosome.Nvim.Api.IO (vimGetWindows)
 import Test.Framework
 import Unit (tmuxGuiSpecDef)
 
@@ -39,11 +40,13 @@ pasteCycleSpec = do
   setL @Env Env.yanks yanks
   uraPaste
   checkContent item1
+  gassertEqual 2 . length =<< vimGetWindows
   uraPaste
   checkContent item2
+  await (gassertEqual 1 . length) vimGetWindows
   where
     checkContent item =
-      await (gassertEqual ("" : (NonEmpty.toList item))) currentBufferContent
+      await (gassertEqual ("" : NonEmpty.toList item)) currentBufferContent
 
 test_pasteCycle :: IO ()
 test_pasteCycle =

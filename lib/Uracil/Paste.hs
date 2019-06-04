@@ -1,21 +1,23 @@
 module Uracil.Paste where
 
 import Chiasma.Data.Ident (Ident)
+import Control.Concurrent.Lifted (fork)
 import qualified Control.Lens as Lens (view)
-import Control.Monad.DeepState (modifyML)
-import Data.Hourglass (Elapsed)
+import Control.Monad.DeepState (modifyML')
+import Data.Hourglass (Elapsed(Elapsed), Seconds(Seconds))
 import qualified Data.List.NonEmpty as NonEmpty (head)
 import Ribosome.Api.Undo (undo)
-import Ribosome.Api.Window (redraw)
-import Ribosome.Nvim.Api.IO (vimCallFunction, vimCommand)
-import System.Hourglass (timeCurrent)
-
-import Ribosome.Api.Window (setLine)
+import Ribosome.Api.Window (redraw, setLine)
+import Ribosome.Config.Setting (setting)
 import Ribosome.Data.Scratch (Scratch(Scratch))
 import Ribosome.Data.ScratchOptions (ScratchOptions(ScratchOptions), defaultScratchOptions)
 import qualified Ribosome.Data.ScratchOptions as ScratchOptions (float)
+import Ribosome.Data.SettingError (SettingError)
 import Ribosome.Msgpack.Error (DecodeError)
-import Ribosome.Scratch (showInScratch)
+import Ribosome.Nvim.Api.IO (vimCallFunction, vimCommand)
+import Ribosome.Scratch (killScratchByName, showInScratch)
+import System.Hourglass (timeCurrent)
+
 import Uracil.Data.Env (Env)
 import qualified Uracil.Data.Env as Env (paste, yanks)
 import Uracil.Data.Paste (Paste(Paste))
@@ -24,6 +26,7 @@ import Uracil.Data.Yank (Yank(Yank))
 import qualified Uracil.Data.Yank as Yank (text)
 import Uracil.Data.YankError (YankError)
 import qualified Uracil.Data.YankError as YankError (YankError(EmptyHistory))
+import qualified Uracil.Settings as Settings (pasteTimeout)
 import Uracil.Yank (loadYank, yankByIdent, yankByIndex, yanks)
 
 pasteWith ::
@@ -84,9 +87,13 @@ yankLines ::
 yankLines =
   NonEmpty.head . Lens.view Yank.text <$$> yanks
 
+yankScratchName :: Text
+yankScratchName =
+  "uracil-yanks"
+
 yankScratchOptions :: ScratchOptions
 yankScratchOptions =
-  (defaultScratchOptions "uracil-yanks") { ScratchOptions.float = Just def }
+  (defaultScratchOptions yankScratchName) { ScratchOptions.float = Just def }
 
 showYankScratch ::
   NvimE e m =>
@@ -120,9 +127,42 @@ now ::
 now =
   liftIO timeCurrent
 
+cancelIfElapsed ::
+  NvimE e m =>
+  MonadRibo m =>
+  Int ->
+  Paste ->
+  m (Maybe Paste)
+cancelIfElapsed timeout p@(Paste _ updated _) = do
+  n <- now
+  return $ if (n - updated) >= Elapsed (Seconds (fromIntegral timeout)) then Nothing else Just p
+
+cancelPasteAfter ::
+  NvimE e m =>
+  MonadRibo m =>
+  MonadDeepState s Env m =>
+  Int ->
+  m ()
+cancelPasteAfter timeout = do
+  canceled <- isNothing <$> modifyML' @Env Env.paste (join <$$> traverse (cancelIfElapsed timeout))
+  when canceled (killScratchByName yankScratchName)
+
+waitAndCancelPaste ::
+  MonadRibo m =>
+  NvimE e m =>
+  MonadDeepError e SettingError m =>
+  MonadDeepState s Env m =>
+  m ()
+waitAndCancelPaste = do
+  duration <- setting Settings.pasteTimeout
+  sleep (fromIntegral duration)
+  cancelPasteAfter duration
+
 updatePaste ::
   NvimE e m =>
   MonadRibo m =>
+  MonadBaseControl IO m =>
+  MonadDeepError e SettingError m =>
   MonadDeepError e DecodeError m =>
   MonadDeepError e YankError m =>
   MonadDeepState s Env m =>
@@ -136,10 +176,13 @@ updatePaste index = do
   redraw
   yank <- yankByIndex index
   paste yank
+  void $ fork waitAndCancelPaste
 
 repaste ::
   NvimE e m =>
   MonadRibo m =>
+  MonadBaseControl IO m =>
+  MonadDeepError e SettingError m =>
   MonadDeepError e DecodeError m =>
   MonadDeepError e YankError m =>
   MonadDeepState s Env m =>
@@ -154,6 +197,8 @@ repaste (Paste index _ _) = do
 startPaste ::
   NvimE e m =>
   MonadRibo m =>
+  MonadBaseControl IO m =>
+  MonadDeepError e SettingError m =>
   MonadDeepError e DecodeError m =>
   MonadDeepError e YankError m =>
   MonadDeepState s Env m =>
@@ -164,6 +209,8 @@ startPaste =
 uraPaste ::
   NvimE e m =>
   MonadRibo m =>
+  MonadBaseControl IO m =>
+  MonadDeepError e SettingError m =>
   MonadDeepError e DecodeError m =>
   MonadDeepError e YankError m =>
   MonadDeepState s Env m =>

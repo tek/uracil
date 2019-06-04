@@ -6,6 +6,7 @@ import Chiasma.Data.TmuxError (TmuxError)
 import Data.DeepPrisms (deepPrisms)
 import Ribosome.Data.Mapping (MappingError)
 import Ribosome.Data.PersistError (PersistError)
+import Ribosome.Data.SettingError (SettingError)
 import Ribosome.Error.Report.Class (ReportError(..))
 import Ribosome.Msgpack.Error (DecodeError)
 import Ribosome.Nvim.Api.RpcCall (RpcError)
@@ -23,6 +24,8 @@ data Error =
   Tmux TmuxError
   |
   Mapping MappingError
+  |
+  Setting SettingError
   |
   Yank YankError
   deriving (Show, Generic, ReportError)

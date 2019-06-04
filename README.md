@@ -32,6 +32,13 @@ Plug 'tek/chromatin'
 Plug 'tek/uracil'
 ```
 
+# Settings
+
+## `g:uracil_paste_timeout`
+
+The time in seconds after which the current [paste](#urapaste) is terminated.
+Default is `1`.
+
 # Commands
 
 ## `UraYankMenu`
@@ -50,6 +57,9 @@ Paste the most recently yanked text, basically like the regular `p` or using `p`
 
 Repeatedly calling this function cycles through the yank history, each time calling `undo` and pasting the next entry.
 A floating window containing the yank history is displayed at the cursor.
+
+After the time configured by [`g:uracil_paste_timeout`](#g-uracil-paste-timeout) has passed, the window is hidden and
+the currently pasted entry is reset, so that a subsequent paste starts from the top.
 
 [Neovim]: https://github.com/neovim/neovim
 [Haskell]: https://www.haskell.org
