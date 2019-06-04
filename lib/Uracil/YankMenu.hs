@@ -3,15 +3,12 @@ module Uracil.YankMenu where
 import Chiasma.Data.Ident (Ident, identText, parseIdent)
 import Conduit (yieldMany)
 import qualified Control.Lens as Lens (view)
-import Data.List.NonEmpty (NonEmpty, nonEmpty)
 import qualified Data.Map as Map (fromList)
-import qualified Data.Text as Text (length, take, unwords)
-import Ribosome.Control.Monad.Ribo (prependUnique)
+import qualified Data.Text as Text (length, take)
 import Ribosome.Menu.Data.Menu (Menu)
 import Ribosome.Menu.Data.MenuConsumerAction (MenuConsumerAction)
 import Ribosome.Menu.Data.MenuItem (MenuItem(MenuItem))
 import qualified Ribosome.Menu.Data.MenuItem as MenuItem (ident)
-import Ribosome.Menu.Data.MenuResult (MenuResult)
 import Ribosome.Menu.Prompt.Data.Prompt (Prompt)
 import Ribosome.Menu.Prompt.Data.PromptConfig (PromptConfig(PromptConfig))
 import Ribosome.Menu.Prompt.Nvim (getCharC, nvimPromptRenderer)
@@ -19,11 +16,9 @@ import Ribosome.Menu.Prompt.Run (basicTransition)
 import Ribosome.Menu.Run (nvimMenu)
 import Ribosome.Menu.Simple (MappingHandler, Mappings, defaultMenu, menuQuitWith, menuQuitWith, selectedMenuItem)
 import Ribosome.Msgpack.Error (DecodeError)
-import Ribosome.Nvim.Api.IO (vimGetCurrentWindow, vimGetVvar, windowGetHeight)
+import Ribosome.Nvim.Api.IO (vimGetCurrentWindow, windowGetHeight)
 
 import Uracil.Data.Env (Env)
-import qualified Uracil.Data.Env as Env (yanks)
-import Uracil.Data.RegEvent (RegEvent(RegEvent))
 import Uracil.Data.Yank (Yank(Yank))
 import Uracil.Data.YankError (YankError)
 import qualified Uracil.Data.YankError as YankError (YankError(EmptyHistory, InvalidMenuIndex))
@@ -73,10 +68,10 @@ menuPpaste =
   menuAction ppasteIdent
 
 yankMenuItems :: Int -> [Yank] -> [MenuItem]
-yankMenuItems width yanks =
-  uncurry menuItem <$> zip yanks [0..]
+yankMenuItems width yanks' =
+  uncurry menuItem <$> zip yanks' [(0 :: Int)..]
   where
-    menuItem (Yank ident _ _ (line' :| rest)) index =
+    menuItem (Yank ident _ _ (line' :| rest)) _ =
       MenuItem (identText ident) (Text.take maxlen line' <> dots line' <> count rest)
     dots line' =
       if Text.length line' > maxlen then "..." else ""

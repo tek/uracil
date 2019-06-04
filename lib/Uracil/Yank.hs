@@ -1,23 +1,9 @@
 module Uracil.Yank where
 
 import Chiasma.Data.Ident (Ident, generateIdent, sameIdent)
-import Conduit (yieldMany)
 import qualified Control.Lens as Lens (element, filtered, firstOf, folded)
 import Data.List.NonEmpty (NonEmpty, nonEmpty)
-import qualified Data.Map as Map (fromList)
-import qualified Data.Text as Text (length, take, unwords)
 import Ribosome.Control.Monad.Ribo (prependUnique)
-import Ribosome.Menu.Data.Menu (Menu)
-import Ribosome.Menu.Data.MenuConsumerAction (MenuConsumerAction)
-import Ribosome.Menu.Data.MenuItem (MenuItem(MenuItem))
-import qualified Ribosome.Menu.Data.MenuItem as MenuItem (ident)
-import Ribosome.Menu.Data.MenuResult (MenuResult)
-import Ribosome.Menu.Prompt.Data.Prompt (Prompt)
-import Ribosome.Menu.Prompt.Data.PromptConfig (PromptConfig(PromptConfig))
-import Ribosome.Menu.Prompt.Nvim (getCharC, nvimPromptRenderer)
-import Ribosome.Menu.Prompt.Run (basicTransition)
-import Ribosome.Menu.Run (nvimMenu)
-import Ribosome.Menu.Simple (defaultMenu, menuQuit, menuQuitWith, selectedMenuItem)
 import Ribosome.Msgpack.Error (DecodeError)
 import Ribosome.Nvim.Api.IO (vimCallFunction, vimGetVvar)
 
@@ -40,6 +26,8 @@ storeEvent (RegEvent _ "y" content register regtype) = do
   let yank = Yank ident register regtype text
   showDebug "yank" yank
   prependUnique @Env Env.yanks yank
+storeEvent _ =
+  return ()
 
 uraYank ::
   NvimE e m =>

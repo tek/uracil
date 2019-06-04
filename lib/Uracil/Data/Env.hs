@@ -4,7 +4,6 @@ module Uracil.Data.Env where
 
 import Data.DeepLenses (deepLenses)
 import Data.Default (Default(def))
-import Path (Abs, Dir, Path, absdir)
 import Ribosome.Control.Monad.Ribo (Ribo)
 import Ribosome.Orphans ()
 

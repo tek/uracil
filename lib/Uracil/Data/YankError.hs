@@ -25,7 +25,7 @@ instance ReportError YankError where
   errorReport InvalidMenuIndex =
     ErrorReport "internal error" ["invalid index in yank menu"] ERROR
   errorReport (NoSuchYank ident) =
-    ErrorReport "internal error" ["invalid ident in yank menu"] ERROR
+    ErrorReport "internal error" ["invalid ident in yank menu: " <> show ident] ERROR
   errorReport (InvalidYankIndex index) =
     ErrorReport "internal error" ["invalid index for yank history: " <> show index] ERROR
   errorReport EmptyEvent =

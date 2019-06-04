@@ -19,7 +19,7 @@ instance IsString RegisterType where
     Character
   fromString "V" =
     Line
-  fromString a@('c' : 'v' : num) =
+  fromString a@('c' : 'v' : _) =
     Unknown (toText a)
   fromString a =
     Unknown (toText a)
