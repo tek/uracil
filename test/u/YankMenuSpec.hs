@@ -3,6 +3,7 @@
 module YankMenuSpec (htf_thisModulesTests) where
 
 import qualified Chiasma.Data.Ident as Ident (Ident(Str))
+import qualified Data.List.NonEmpty as NonEmpty (toList)
 import qualified Data.Text as Text (unlines)
 import Ribosome.Api.Buffer (currentBufferContent, setCurrentBufferContent)
 import Ribosome.Api.Window (setCurrentLine)
@@ -18,18 +19,18 @@ import qualified Uracil.Data.RegisterType as RegisterType (RegisterType(Line))
 import Uracil.Data.Yank (Yank(Yank))
 import Uracil.YankMenu (uraYankMenu)
 
-targetItem :: [Text]
+targetItem :: NonEmpty Text
 targetItem =
-  ["item4", "item4 cont"]
+  "item4" :| ["item4 cont"]
 
 items :: [Yank]
 items =
   uncurry item <$> [
-    (Ident.Str "1", ["item1"]),
-    (Ident.Str "2", ["item2", "item2 cont"]),
-    (Ident.Str "3", ["item3"]),
+    (Ident.Str "1", "item1" :| []),
+    (Ident.Str "2", "item2" :| ["item2 cont"]),
+    (Ident.Str "3", "item3" :| []),
     (Ident.Str "4", targetItem),
-    (Ident.Str "5", ["item5"])
+    (Ident.Str "5", "item5" :| [])
     ]
   where
     item ident =
@@ -49,7 +50,7 @@ yankChars =
 yankMenuYankSpec :: Uracil ()
 yankMenuYankSpec = do
   yankMenuSpec yankChars
-  gassertEqual (Text.unlines targetItem) =<< vimCallFunction "getreg" [toMsgpack ("\"" :: Text)]
+  gassertEqual (Text.unlines (NonEmpty.toList targetItem)) =<< vimCallFunction "getreg" [toMsgpack ("\"" :: Text)]
 
 test_yankMenuYank :: IO ()
 test_yankMenuYank =
@@ -62,7 +63,7 @@ pasteChars =
 yankMenuPasteSpec :: Uracil ()
 yankMenuPasteSpec = do
   yankMenuSpec pasteChars
-  gassertEqual (["1", "2"] <> targetItem <> ["3"]) =<< currentBufferContent
+  gassertEqual (["1", "2"] <> NonEmpty.toList targetItem <> ["3"]) =<< currentBufferContent
 
 test_yankMenuPaste :: IO ()
 test_yankMenuPaste =
@@ -75,7 +76,7 @@ ppasteChars =
 yankMenuPpasteSpec :: Uracil ()
 yankMenuPpasteSpec = do
   yankMenuSpec ppasteChars
-  gassertEqual (["1"] <> targetItem <> ["2", "3"]) =<< currentBufferContent
+  gassertEqual (["1"] <> NonEmpty.toList targetItem <> ["2", "3"]) =<< currentBufferContent
 
 test_yankMenuPpaste :: IO ()
 test_yankMenuPpaste =

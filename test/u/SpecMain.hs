@@ -5,6 +5,7 @@ module Main where
 import Test.Framework
 import Test.Framework.BlackBoxTest ()
 import {-@ HTF_TESTS @-} DiagSpec
+import {-@ HTF_TESTS @-} PasteSpec
 import {-@ HTF_TESTS @-} YankMenuSpec
 import {-@ HTF_TESTS @-} YankSpec
 

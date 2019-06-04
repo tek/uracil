@@ -26,7 +26,7 @@ import qualified Uracil.Data.Env as Env (yanks)
 import Uracil.Data.RegEvent (RegEvent(RegEvent))
 import Uracil.Data.Yank (Yank(Yank))
 import Uracil.Data.YankError (YankError)
-import qualified Uracil.Data.YankError as YankError (YankError(Empty, InvalidMenuIndex))
+import qualified Uracil.Data.YankError as YankError (YankError(EmptyHistory, InvalidMenuIndex))
 import Uracil.Paste (pasteIdent, ppasteIdent)
 import Uracil.Yank (loadYankIdent, yanks)
 
@@ -46,6 +46,7 @@ menuAction action m _ = do
       selectedMenuItem m
 
 menuYank ::
+  MonadRibo m =>
   NvimE e m =>
   MonadDeepState s Env m =>
   MonadDeepError e YankError m =>
@@ -54,6 +55,7 @@ menuYank =
   menuAction loadYankIdent
 
 menuPaste ::
+  MonadRibo m =>
   NvimE e m =>
   MonadDeepState s Env m =>
   MonadDeepError e YankError m =>
@@ -62,6 +64,7 @@ menuPaste =
   menuAction pasteIdent
 
 menuPpaste ::
+  MonadRibo m =>
   NvimE e m =>
   MonadDeepState s Env m =>
   MonadDeepError e YankError m =>
@@ -73,7 +76,7 @@ yankMenuItems :: Int -> [Yank] -> [MenuItem]
 yankMenuItems width yanks =
   uncurry menuItem <$> zip yanks [0..]
   where
-    menuItem (Yank ident _ _ (line' : rest)) index =
+    menuItem (Yank ident _ _ (line' :| rest)) index =
       MenuItem (identText ident) (Text.take maxlen line' <> dots line' <> count rest)
     dots line' =
       if Text.length line' > maxlen then "..." else ""
@@ -86,6 +89,7 @@ yankMenuItems width yanks =
 
 yankMenuMappings ::
   NvimE e m =>
+  MonadRibo m =>
   MonadDeepState s Env m =>
   MonadDeepError e YankError m =>
   Mappings m ()
@@ -105,7 +109,7 @@ uraYankMenu = do
   void $ run =<< yankMenuItems width <$> yanks
   where
     run [] =
-      throwHoist YankError.Empty
+      throwHoist YankError.EmptyHistory
     run items =
       nvimMenu def (yieldMany items) handler promptConfig
     handler =

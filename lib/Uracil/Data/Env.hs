@@ -9,6 +9,7 @@ import Ribosome.Control.Monad.Ribo (Ribo)
 import Ribosome.Orphans ()
 
 import Uracil.Data.Error (Error)
+import Uracil.Data.Paste (Paste)
 import Uracil.Data.Yank (Yank)
 
 type Uracil a = Ribo Env Error a
@@ -16,11 +17,12 @@ type Uracil a = Ribo Env Error a
 data Env =
   Env {
     _yanks :: [Yank],
-    _deletes :: [Yank]
+    _deletes :: [Yank],
+    _paste :: Maybe Paste
   }
   deriving Show
 
 deepLenses ''Env
 
 instance Default Env where
-  def = Env def def
+  def = Env def def def

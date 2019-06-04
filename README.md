@@ -44,6 +44,13 @@ Several actions can be performed through mappings:
 * `P` insert the yank before the cursor position.
 * `y` load the yank into to `"` register.
 
+## `UraPaste`
+
+Paste the most recently yanked text, basically like the regular `p` or using `p` in the yank menu.
+
+Repeatedly calling this function cycles through the yank history, each time calling `undo` and pasting the next entry.
+A floating window containing the yank history is displayed at the cursor.
+
 [Neovim]: https://github.com/neovim/neovim
 [Haskell]: https://www.haskell.org
 [ribosome]: https://github.com/tek/ribosome
