@@ -4,11 +4,14 @@ import Chiasma.Data.Ident (Ident)
 import Control.Concurrent.Lifted (fork)
 import qualified Control.Lens as Lens (view)
 import Control.Monad.DeepState (modifyML')
+import Data.Foldable (maximum)
 import Data.Hourglass (Elapsed(Elapsed), Seconds(Seconds))
-import qualified Data.List.NonEmpty as NonEmpty (head)
+import qualified Data.List.NonEmpty as NonEmpty (head, length, toList)
+import qualified Data.Text as Text (length)
 import Ribosome.Api.Undo (undo)
 import Ribosome.Api.Window (redraw, setLine)
 import Ribosome.Config.Setting (setting)
+import qualified Ribosome.Data.FloatOptions as FloatOptions (FloatOptions(height, width))
 import Ribosome.Data.Scratch (Scratch(Scratch))
 import Ribosome.Data.ScratchOptions (ScratchOptions(ScratchOptions), defaultScratchOptions)
 import qualified Ribosome.Data.ScratchOptions as ScratchOptions (float)
@@ -83,26 +86,37 @@ currentPaste =
 
 yankLines ::
   MonadDeepState s Env m =>
-  m [Text]
-yankLines =
-  NonEmpty.head . Lens.view Yank.text <$$> yanks
+  MonadDeepError e YankError m =>
+  m (NonEmpty Text)
+yankLines = do
+  lines' <- NonEmpty.head . Lens.view Yank.text <$$> yanks
+  hoistMaybe YankError.EmptyHistory (nonEmpty lines')
 
 yankScratchName :: Text
 yankScratchName =
   "uracil-yanks"
 
-yankScratchOptions :: ScratchOptions
-yankScratchOptions =
-  (defaultScratchOptions yankScratchName) { ScratchOptions.float = Just def }
+yankScratchOptions :: NonEmpty Text -> ScratchOptions
+yankScratchOptions lines' =
+  (defaultScratchOptions yankScratchName) { ScratchOptions.float = Just floatOptions }
+  where
+    floatOptions =
+      def { FloatOptions.width = width, FloatOptions.height = height }
+    width =
+      min 40 (maximum (Text.length <$> lines')) + 5
+    height =
+      max 1 $ min 10 (length lines')
 
 showYankScratch ::
   NvimE e m =>
   MonadRibo m =>
   MonadDeepError e DecodeError m =>
+  MonadDeepError e YankError m =>
   MonadDeepState s Env m =>
   m Scratch
-showYankScratch =
-  (`showInScratch` yankScratchOptions) =<< yankLines
+showYankScratch = do
+  lines' <- yankLines
+  (`showInScratch` yankScratchOptions lines') (NonEmpty.toList lines')
 
 selectYankInScratch ::
   NvimE e m =>
@@ -116,6 +130,7 @@ ensureYankScratch ::
   NvimE e m =>
   MonadRibo m =>
   MonadDeepError e DecodeError m =>
+  MonadDeepError e YankError m =>
   MonadDeepState s Env m =>
   m Scratch
 ensureYankScratch =
