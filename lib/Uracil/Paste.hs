@@ -7,7 +7,7 @@ import Control.Monad.DeepState (modifyML')
 import Data.Foldable (maximum)
 import Data.Hourglass (Elapsed(Elapsed), Seconds(Seconds))
 import qualified Data.List.NonEmpty as NonEmpty (head, toList)
-import qualified Data.Text as Text (length)
+import qualified Data.Text as Text (isInfixOf, length)
 import Ribosome.Api.Undo (undo)
 import Ribosome.Api.Window (redraw, setLine)
 import Ribosome.Config.Setting (setting)
@@ -18,7 +18,7 @@ import Ribosome.Data.ScratchOptions (ScratchOptions, defaultScratchOptions)
 import qualified Ribosome.Data.ScratchOptions as ScratchOptions (float)
 import Ribosome.Data.SettingError (SettingError)
 import Ribosome.Msgpack.Error (DecodeError)
-import Ribosome.Nvim.Api.IO (vimCommand)
+import Ribosome.Nvim.Api.IO (vimCommand, vimGetOption)
 import Ribosome.Scratch (killScratchByName, showInScratch)
 import System.Hourglass (timeCurrent)
 
@@ -33,15 +33,29 @@ import qualified Uracil.Data.YankError as YankError (YankError(EmptyHistory))
 import qualified Uracil.Settings as Settings (pasteTimeout)
 import Uracil.Yank (loadYank, yankByIdent, yankByIndex, yanks)
 
+defaultRegister ::
+  NvimE e m =>
+  m Text
+defaultRegister =
+  decide <$> vimGetOption "clipboard"
+  where
+    decide "unnamed" =
+      "*"
+    decide a | "unnamedplus" `Text.isInfixOf` a =
+      "+"
+    decide _ =
+      "\""
+
 pasteWith ::
   MonadRibo m =>
   NvimE e m =>
   Text ->
   Yank ->
   m ()
-pasteWith cmd yank =
-  loadYank "\"" yank *>
-  vimCommand ("normal! " <> cmd)
+pasteWith cmd yank = do
+  register <- defaultRegister
+  loadYank register yank
+  vimCommand ("normal! \"" <> register <> cmd)
 
 paste ::
   MonadRibo m =>
@@ -192,14 +206,14 @@ updatePaste ::
   Int ->
   m ()
 updatePaste index = do
+  yank <- yankByIndex index
+  logDebug @Text ("repasting with index " <> show (index + 1) <> ": " <> show yank)
+  paste yank
   scratch <- ensureYankScratch
   updated <- now
   setL @Env Env.paste $ Just $ Paste index updated scratch
   selectYankInScratch scratch index
   redraw
-  yank <- yankByIndex index
-  logDebug @Text ("repasting with index " <> show (index + 1) <> ": " <> show yank)
-  paste yank
   void $ fork waitAndCancelPaste
 
 exclusiveUpdatePaste ::

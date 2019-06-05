@@ -5,7 +5,7 @@ module PasteSpec (htf_thisModulesTests) where
 import qualified Chiasma.Data.Ident as Ident (Ident(Str))
 import qualified Data.List.NonEmpty as NonEmpty (toList)
 import Ribosome.Api.Buffer (currentBufferContent)
-import Ribosome.Nvim.Api.IO (vimGetWindows)
+import Ribosome.Nvim.Api.IO (vimGetWindows, vimSetOption)
 import Test.Framework
 import Unit (tmuxGuiSpecDef)
 
@@ -37,6 +37,7 @@ yanks =
 
 pasteCycleSpec :: Uracil ()
 pasteCycleSpec = do
+  vimSetOption "clipboard" (toMsgpack ("unnamed,unnamedplus" :: Text))
   setL @Env Env.yanks yanks
   uraPaste
   checkContent item1
