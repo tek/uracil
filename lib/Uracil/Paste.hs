@@ -198,6 +198,7 @@ updatePaste index = do
   selectYankInScratch scratch index
   redraw
   yank <- yankByIndex index
+  logDebug @Text ("repasting with index " <> show (index + 1) <> ": " <> show yank)
   paste yank
   void $ fork waitAndCancelPaste
 
@@ -231,7 +232,6 @@ repaste (Paste index _ _) = do
   else throwHoist YankError.EmptyHistory
   where
     run count =
-      logDebug @Text ("repasting with index " <> show (index + 1)) *>
       undo *>
       exclusiveUpdatePaste ((index + 1) `mod` count)
 
