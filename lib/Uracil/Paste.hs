@@ -153,6 +153,13 @@ cancelIfElapsed timeout p@(Paste _ updated _) = do
   n <- now
   return $ if (n - updated) >= Elapsed (Seconds (fromIntegral timeout)) then Nothing else Just p
 
+killYankScratch ::
+  NvimE e m =>
+  MonadRibo m =>
+  m ()
+killYankScratch =
+  killScratchByName yankScratchName
+
 cancelPasteAfter ::
   NvimE e m =>
   MonadRibo m =>
@@ -161,7 +168,7 @@ cancelPasteAfter ::
   m ()
 cancelPasteAfter timeout = do
   canceled <- isNothing <$> modifyML' @Env Env.paste (join <$$> traverse (cancelIfElapsed timeout))
-  when canceled (killScratchByName yankScratchName)
+  when canceled killYankScratch
 
 waitAndCancelPaste ::
   MonadRibo m =>
@@ -220,8 +227,13 @@ repaste ::
 repaste (Paste index _ _) = do
   count <- length <$> getL @Env Env.yanks
   if count > 0
-  then undo *> exclusiveUpdatePaste ((index + 1) `mod` count)
+  then run count
   else throwHoist YankError.EmptyHistory
+  where
+    run count =
+      logDebug @Text ("repasting with index " <> show (index + 1)) *>
+      undo *>
+      exclusiveUpdatePaste ((index + 1) `mod` count)
 
 startPaste ::
   NvimE e m =>
@@ -233,6 +245,7 @@ startPaste ::
   MonadDeepState s Env m =>
   m ()
 startPaste =
+  killYankScratch *>
   updatePaste 0
 
 uraPaste ::
