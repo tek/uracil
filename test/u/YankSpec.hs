@@ -5,7 +5,7 @@ module YankSpec (htf_thisModulesTests) where
 import Neovim (Neovim)
 import Ribosome.Api.Buffer (setCurrentBufferContent)
 import Ribosome.Api.Window (setCurrentLine)
-import Ribosome.Control.Ribosome (Ribosome, newRibosome)
+import Ribosome.Control.Ribosome (newRibosome)
 import Ribosome.Nvim.Api.IO (vimCommand)
 import Ribosome.Test.Embed (integrationSpecDef)
 import Test.Framework

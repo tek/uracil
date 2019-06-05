@@ -11,6 +11,7 @@ import qualified Data.Text as Text (length)
 import Ribosome.Api.Undo (undo)
 import Ribosome.Api.Window (redraw, setLine)
 import Ribosome.Config.Setting (setting)
+import Ribosome.Control.Lock (lockOrWait)
 import qualified Ribosome.Data.FloatOptions as FloatOptions (FloatOptions(height, width))
 import Ribosome.Data.Scratch (Scratch(Scratch))
 import Ribosome.Data.ScratchOptions (ScratchOptions, defaultScratchOptions)
@@ -193,6 +194,19 @@ updatePaste index = do
   paste yank
   void $ fork waitAndCancelPaste
 
+exclusiveUpdatePaste ::
+  NvimE e m =>
+  MonadRibo m =>
+  MonadBaseControl IO m =>
+  MonadDeepError e SettingError m =>
+  MonadDeepError e DecodeError m =>
+  MonadDeepError e YankError m =>
+  MonadDeepState s Env m =>
+  Int ->
+  m ()
+exclusiveUpdatePaste =
+  lockOrWait "uracil-update-paste" . updatePaste
+
 repaste ::
   NvimE e m =>
   MonadRibo m =>
@@ -206,7 +220,7 @@ repaste ::
 repaste (Paste index _ _) = do
   count <- length <$> getL @Env Env.yanks
   if count > 0
-  then undo *> updatePaste ((index + 1) `mod` count)
+  then undo *> exclusiveUpdatePaste ((index + 1) `mod` count)
   else throwHoist YankError.EmptyHistory
 
 startPaste ::
