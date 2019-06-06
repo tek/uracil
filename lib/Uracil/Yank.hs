@@ -26,8 +26,6 @@ storeEvent (RegEvent _ _ content register regtype) = do
   let yank = Yank ident register regtype text
   showDebug "yank" yank
   prependUnique @Env Env.yanks yank
-storeEvent _ =
-  return ()
 
 uraYank ::
   NvimE e m =>

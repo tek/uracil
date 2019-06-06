@@ -4,8 +4,9 @@ module PasteSpec (htf_thisModulesTests) where
 
 import qualified Chiasma.Data.Ident as Ident (Ident(Str))
 import qualified Data.List.NonEmpty as NonEmpty (toList)
-import Ribosome.Api.Buffer (currentBufferContent)
-import Ribosome.Nvim.Api.IO (vimGetWindows, vimSetOption)
+import Ribosome.Api.Buffer (currentBufferContent, setCurrentBufferContent)
+import Ribosome.Api.Window (setCurrentCursor)
+import Ribosome.Nvim.Api.IO (vimCommand, vimGetWindows, vimSetOption)
 import Test.Framework
 import Unit (tmuxGuiSpecDef)
 
@@ -35,8 +36,8 @@ yanks =
     item ident =
       Yank ident (Register.Special "*") RegisterType.Line
 
-pasteCycleSpec :: Uracil ()
-pasteCycleSpec = do
+normalPasteSpec :: Uracil ()
+normalPasteSpec = do
   vimSetOption "clipboard" (toMsgpack ("unnamed,unnamedplus" :: Text))
   setL @Env Env.yanks yanks
   uraPaste
@@ -49,6 +50,24 @@ pasteCycleSpec = do
     checkContent item =
       await (gassertEqual ("" : NonEmpty.toList item)) currentBufferContent
 
-test_pasteCycle :: IO ()
-test_pasteCycle =
-  tmuxGuiSpecDef pasteCycleSpec
+test_normalPaste :: IO ()
+test_normalPaste =
+  tmuxGuiSpecDef normalPasteSpec
+
+visualPasteSpec :: Uracil ()
+visualPasteSpec = do
+  setL @Env Env.yanks yanks
+  setCurrentBufferContent ["line1", "word for word"]
+  setCurrentCursor 1 5
+  vimCommand "normal! viw"
+  uraPaste
+  checkContent item1
+  uraPaste
+  checkContent item2
+  where
+    checkContent item =
+      await (gassertEqual ("line1" : "word " : NonEmpty.toList item ++ [" word"])) currentBufferContent
+
+test_visualPaste :: IO ()
+test_visualPaste =
+  tmuxGuiSpecDef visualPasteSpec

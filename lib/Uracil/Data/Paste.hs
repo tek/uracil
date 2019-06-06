@@ -8,7 +8,8 @@ data Paste =
   Paste {
     _index :: Int,
     _updated :: Elapsed,
-    _scratch :: Scratch
+    _scratch :: Scratch,
+    _visual :: Bool
   }
   deriving (Eq, Show)
 

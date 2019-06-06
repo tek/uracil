@@ -8,6 +8,7 @@ import Data.Foldable (maximum)
 import Data.Hourglass (Elapsed(Elapsed), Seconds(Seconds))
 import qualified Data.List.NonEmpty as NonEmpty (head, toList)
 import qualified Data.Text as Text (isInfixOf, length)
+import Ribosome.Api.Mode (visualModeActive)
 import Ribosome.Api.Undo (undo)
 import Ribosome.Api.Window (redraw, setLine)
 import Ribosome.Config.Setting (setting)
@@ -163,7 +164,7 @@ cancelIfElapsed ::
   Int ->
   Paste ->
   m (Maybe Paste)
-cancelIfElapsed timeout p@(Paste _ updated _) = do
+cancelIfElapsed timeout p@(Paste _ updated _ _) = do
   n <- now
   return $ if (n - updated) >= Elapsed (Seconds (fromIntegral timeout)) then Nothing else Just p
 
@@ -206,12 +207,13 @@ updatePaste ::
   Int ->
   m ()
 updatePaste index = do
+  visual <- visualModeActive
   yank <- yankByIndex index
   logDebug @Text ("repasting with index " <> show (index + 1) <> ": " <> show yank)
   paste yank
   scratch <- ensureYankScratch
   updated <- now
-  setL @Env Env.paste $ Just $ Paste index updated scratch
+  setL @Env Env.paste $ Just $ Paste index updated scratch visual
   selectYankInScratch scratch index
   redraw
   void $ fork waitAndCancelPaste
@@ -239,7 +241,7 @@ repaste ::
   MonadDeepState s Env m =>
   Paste ->
   m ()
-repaste (Paste index _ _) = do
+repaste (Paste index _ _ visual) = do
   count <- length <$> getL @Env Env.yanks
   if count > 0
   then run count
@@ -247,7 +249,10 @@ repaste (Paste index _ _) = do
   where
     run count =
       undo *>
+      reset *>
       exclusiveUpdatePaste ((index + 1) `mod` count)
+    reset =
+      when visual $ vimCommand "normal! gv"
 
 startPaste ::
   NvimE e m =>
