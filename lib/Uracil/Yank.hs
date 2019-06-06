@@ -20,7 +20,7 @@ storeEvent ::
   MonadDeepState s Env m =>
   MonadDeepError e YankError m =>
   m ()
-storeEvent (RegEvent _ "y" content register regtype) = do
+storeEvent (RegEvent _ _ content register regtype) = do
   text <- hoistMaybe YankError.EmptyEvent (nonEmpty content)
   ident <- generateIdent
   let yank = Yank ident register regtype text
