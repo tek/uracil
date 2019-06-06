@@ -1,6 +1,7 @@
 module Uracil.Paste where
 
 import Chiasma.Data.Ident (Ident)
+import Chiasma.Data.Ident (Ident, generateIdent, sameIdent)
 import Control.Concurrent.Lifted (fork)
 import qualified Control.Lens as Lens (view)
 import Control.Monad.DeepState (modifyML')
@@ -162,11 +163,14 @@ cancelIfElapsed ::
   NvimE e m =>
   MonadRibo m =>
   Int ->
+  Ident ->
   Paste ->
   m (Maybe Paste)
-cancelIfElapsed timeout p@(Paste _ updated _ _) = do
+cancelIfElapsed timeout ident p@(Paste pasteIdent _ updated _ _) | ident == pasteIdent = do
   n <- now
   return $ if (n - updated) >= Elapsed (Seconds (fromIntegral timeout)) then Nothing else Just p
+cancelIfElapsed _ _ _ =
+  return Nothing
 
 killYankScratch ::
   NvimE e m =>
@@ -180,9 +184,10 @@ cancelPasteAfter ::
   MonadRibo m =>
   MonadDeepState s Env m =>
   Int ->
+  Ident ->
   m ()
-cancelPasteAfter timeout = do
-  canceled <- isNothing <$> modifyML' @Env Env.paste (join <$$> traverse (cancelIfElapsed timeout))
+cancelPasteAfter timeout ident = do
+  canceled <- isNothing <$> modifyML' @Env Env.paste (join <$$> traverse (cancelIfElapsed timeout ident))
   when canceled killYankScratch
 
 waitAndCancelPaste ::
@@ -190,11 +195,12 @@ waitAndCancelPaste ::
   NvimE e m =>
   MonadDeepError e SettingError m =>
   MonadDeepState s Env m =>
+  Ident ->
   m ()
-waitAndCancelPaste = do
+waitAndCancelPaste ident = do
   duration <- setting Settings.pasteTimeout
   sleep (fromIntegral duration)
-  cancelPasteAfter duration
+  cancelPasteAfter duration ident
 
 updatePaste ::
   NvimE e m =>
@@ -213,10 +219,11 @@ updatePaste index = do
   paste yank
   scratch <- ensureYankScratch
   updated <- now
-  setL @Env Env.paste $ Just $ Paste index updated scratch visual
+  ident <- generateIdent
+  setL @Env Env.paste $ Just $ Paste ident index updated scratch visual
   selectYankInScratch scratch index
   redraw
-  void $ fork waitAndCancelPaste
+  void $ fork (waitAndCancelPaste ident)
 
 exclusiveUpdatePaste ::
   NvimE e m =>
@@ -241,7 +248,7 @@ repaste ::
   MonadDeepState s Env m =>
   Paste ->
   m ()
-repaste (Paste index _ _ visual) = do
+repaste (Paste ident index _ _ visual) = do
   count <- length <$> getL @Env Env.yanks
   if count > 0
   then run count
