@@ -3,12 +3,14 @@ module Uracil.Yank where
 import Chiasma.Data.Ident (Ident, generateIdent, sameIdent)
 import qualified Control.Lens as Lens (element, filtered, firstOf, folded)
 import Data.List.NonEmpty (NonEmpty, nonEmpty)
+import Ribosome.Api.Mode (visualModeActive)
 import Ribosome.Control.Monad.Ribo (prependUnique)
 import Ribosome.Msgpack.Error (DecodeError)
 import Ribosome.Nvim.Api.IO (vimCallFunction, vimGetVvar)
 
 import Uracil.Data.Env (Env)
-import qualified Uracil.Data.Env as Env (yanks)
+import qualified Uracil.Data.Env as Env (paste, yanks)
+import Uracil.Data.Paste (Paste(Paste))
 import Uracil.Data.RegEvent (RegEvent(RegEvent))
 import Uracil.Data.Yank (Yank(Yank))
 import Uracil.Data.YankError (YankError)
@@ -27,6 +29,29 @@ storeEvent (RegEvent _ _ content register regtype) = do
   showDebug "yank" yank
   prependUnique @Env Env.yanks yank
 
+eventValid ::
+  NvimE e m =>
+  RegEvent ->
+  MonadDeepState s Env m =>
+  m Bool
+eventValid (RegEvent _ _ content register regtype) =
+  check =<< getL @Env Env.paste
+  where
+    check (Just (Paste _ _ _ _ True)) =
+      not <$> visualModeActive
+    check _ =
+      return True
+
+storeEventIfValid ::
+  NvimE e m =>
+  MonadRibo m =>
+  RegEvent ->
+  MonadDeepState s Env m =>
+  MonadDeepError e YankError m =>
+  m ()
+storeEventIfValid event =
+  whenM (eventValid event) (storeEvent event)
+
 uraYank ::
   NvimE e m =>
   MonadRibo m =>
@@ -35,7 +60,7 @@ uraYank ::
   MonadDeepState s Env m =>
   m ()
 uraYank =
-  catchAs @DecodeError () (storeEvent =<< vimGetVvar "event")
+  catchAs @DecodeError () (storeEventIfValid =<< vimGetVvar "event")
 
 yanks ::
   MonadDeepState s Env m =>

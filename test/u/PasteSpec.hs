@@ -25,12 +25,16 @@ item2 :: NonEmpty Text
 item2 =
   "item2" :| ["item2 cont"]
 
+item3 :: NonEmpty Text
+item3 =
+  "item3" :| []
+
 yanks :: [Yank]
 yanks =
   uncurry item <$> [
     (Ident.Str "1", item1),
     (Ident.Str "2", item2),
-    (Ident.Str "3", "item3" :| [])
+    (Ident.Str "3", item3)
     ]
   where
     item ident =
@@ -64,6 +68,10 @@ visualPasteSpec = do
   checkContent item1
   uraPaste
   checkContent item2
+  uraPaste
+  checkContent item3
+  uraPaste
+  checkContent item1
   where
     checkContent item =
       await (gassertEqual ("line1" : "word " : NonEmpty.toList item ++ [" word"])) currentBufferContent

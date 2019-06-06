@@ -8,8 +8,9 @@ import Control.Monad.DeepState (modifyML')
 import Data.Foldable (maximum)
 import Data.Hourglass (Elapsed(Elapsed), Seconds(Seconds))
 import qualified Data.List.NonEmpty as NonEmpty (head, toList)
+import Data.String.QM (qt)
 import qualified Data.Text as Text (isInfixOf, length)
-import Ribosome.Api.Mode (visualModeActive)
+import Ribosome.Api.Mode (mode, visualModeActive)
 import Ribosome.Api.Undo (undo)
 import Ribosome.Api.Window (redraw, setLine)
 import Ribosome.Config.Setting (setting)
@@ -108,6 +109,14 @@ yankLines ::
 yankLines = do
   lines' <- NonEmpty.head . Lens.view Yank.text <$$> yanks
   hoistMaybe YankError.EmptyHistory (nonEmpty lines')
+  where
+    formatLine (h :| t) | null t =
+      h
+    formatLine (h :| t) =
+      h <> [qt| [${len}]|]
+      where
+        len :: Text
+        len = show (length t)
 
 yankScratchName :: Text
 yankScratchName =
@@ -168,7 +177,10 @@ cancelIfElapsed ::
   m (Maybe Paste)
 cancelIfElapsed timeout ident p@(Paste pasteIdent _ updated _ _) = do
   n <- now
-  return $ if ident == pasteIdent && (n - updated) >= Elapsed (Seconds (fromIntegral timeout)) then Nothing else Just p
+  return $ if ident == pasteIdent && timedOut n then Nothing else Just p
+  where
+    timedOut n =
+      (n - updated) >= Elapsed (Seconds (fromIntegral timeout))
 
 killYankScratch ::
   NvimE e m =>
@@ -200,6 +212,18 @@ waitAndCancelPaste ident = do
   sleep (fromIntegral duration)
   cancelPasteAfter duration ident
 
+logUpdatePaste ::
+  MonadRibo m =>
+  Text ->
+  Bool ->
+  Text ->
+  m ()
+logUpdatePaste index visual yank =
+  logDebug [qt|repasting with index ${index} in ${visualT} mode: ${yank} |]
+  where
+    visualT :: Text
+    visualT = if visual then "visual" else "normal"
+
 updatePaste ::
   NvimE e m =>
   MonadRibo m =>
@@ -213,7 +237,7 @@ updatePaste ::
 updatePaste index = do
   visual <- visualModeActive
   yank <- yankByIndex index
-  logDebug @Text ("repasting with index " <> show (index + 1) <> ": " <> show yank)
+  logUpdatePaste (show (index + 1)) visual (show yank)
   paste yank
   scratch <- ensureYankScratch
   updated <- now
