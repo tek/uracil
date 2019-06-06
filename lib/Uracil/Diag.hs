@@ -1,7 +1,7 @@
 module Uracil.Diag where
 
 import Data.Functor (void)
-import Data.Text.Prettyprint.Doc (Doc, line, pretty, (<>))
+import Data.Text.Prettyprint.Doc (Doc, line, pretty, vsep, (<>))
 import Ribosome.Control.Monad.Ribo (MonadRibo, NvimE, inspectErrors)
 import Ribosome.Data.Errors (Errors)
 import Ribosome.Data.ScratchOptions (defaultScratchOptions, scratchFocus, scratchSyntax)
@@ -15,6 +15,8 @@ import Ribosome.Msgpack.Error (DecodeError)
 import Ribosome.Scratch (showInScratch)
 
 import Uracil.Data.Env (Env)
+import qualified Uracil.Data.Env as Env (yanks)
+import Uracil.Data.Yank (Yank)
 
 headlineMatch :: SyntaxItem
 headlineMatch =
@@ -44,13 +46,18 @@ errorDiagnostics :: Errors -> Doc a
 errorDiagnostics errs =
   "## Errors" <> line <> pretty errs
 
+yanksDiagnostics :: [Yank] -> Doc a
+yanksDiagnostics yanks =
+  "## Yank History" <> line <> (vsep . fmap pretty) yanks
+
 diagnosticsData ::
   MonadRibo m =>
   MonadDeepState s Env m =>
   m (Doc a)
 diagnosticsData = do
   errors <- inspectErrors errorDiagnostics
-  return $ headline <> line <> line <> errors
+  yanks <- yanksDiagnostics <$> getL @Env Env.yanks
+  return $ headline <> line <> line <> yanks <> line <> line <> errors
   where
     headline = "# Diagnostics"
 

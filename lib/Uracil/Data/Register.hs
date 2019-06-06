@@ -2,6 +2,7 @@ module Uracil.Data.Register where
 
 import Data.Char (isAlpha, isNumber)
 import qualified Data.Text as Text (singleton)
+import Data.Text.Prettyprint.Doc (Doc, Pretty(..))
 import Ribosome.Msgpack.Decode (msgpackFromString)
 
 data Register =
@@ -26,3 +27,13 @@ instance IsString Register where
 
 instance MsgpackDecode Register where
   fromMsgpack = msgpackFromString "Register"
+
+prettyRegister :: Text -> Doc a
+prettyRegister a =
+  "\"" <> pretty a
+
+instance Pretty Register where
+  pretty (Named a) = prettyRegister a
+  pretty (Numbered a) = prettyRegister (show a)
+  pretty (Special a) = prettyRegister a
+  pretty Empty = "no register"

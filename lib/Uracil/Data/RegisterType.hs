@@ -1,5 +1,6 @@
 module Uracil.Data.RegisterType where
 
+import Data.Text.Prettyprint.Doc (Pretty(..))
 import Ribosome.Msgpack.Decode (msgpackFromString)
 
 data RegisterType =
@@ -38,3 +39,10 @@ instance MsgpackEncode RegisterType where
     toMsgpack ("b" <> show width :: Text)
   toMsgpack (Unknown _) =
     toMsgpack ("" :: Text)
+
+instance Pretty RegisterType where
+  pretty Character = "c"
+  pretty Line = "v"
+  pretty Block = "<c-v>"
+  pretty (BlockWidth width) = "<c-v>" <> pretty width
+  pretty (Unknown a) = pretty a

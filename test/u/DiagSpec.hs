@@ -2,13 +2,30 @@
 
 module DiagSpec (htf_thisModulesTests) where
 
+import qualified Chiasma.Data.Ident as Ident (Ident(Str))
 import Control.Monad.IO.Class (liftIO)
 import Ribosome.Api.Buffer (currentBufferContent)
 import Test.Framework
 
 import Unit (specDef)
-import Uracil.Data.Env (Uracil)
+import Uracil.Data.Env (Env, Uracil)
+import qualified Uracil.Data.Env as Env (yanks)
+import qualified Uracil.Data.Register as Register (Register(Special))
+import qualified Uracil.Data.RegisterType as RegisterType (RegisterType(Line))
+import Uracil.Data.Yank (Yank(Yank))
 import Uracil.Diag (uraDiag)
+
+item1 :: NonEmpty Text
+item1 =
+  "item1" :| []
+
+item2 :: NonEmpty Text
+item2 =
+  "item2" :| ["item2 cont"]
+
+item3 :: NonEmpty Text
+item3 =
+  "item3" :| []
 
 target :: [Text]
 target = [
@@ -17,8 +34,20 @@ target = [
   "## Errors"
   ]
 
+yanks :: [Yank]
+yanks =
+  uncurry item <$> [
+    (Ident.Str "1", item1),
+    (Ident.Str "2", item2),
+    (Ident.Str "3", item3)
+    ]
+  where
+    item ident =
+      Yank ident (Register.Special "*") RegisterType.Line
+
 diagSpec :: Uracil ()
 diagSpec = do
+  setL @Env Env.yanks yanks
   uraDiag
   content <- currentBufferContent
   liftIO $ assertEqual target content
