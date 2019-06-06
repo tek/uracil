@@ -166,11 +166,9 @@ cancelIfElapsed ::
   Ident ->
   Paste ->
   m (Maybe Paste)
-cancelIfElapsed timeout ident p@(Paste pasteIdent _ updated _ _) | ident == pasteIdent = do
+cancelIfElapsed timeout ident p@(Paste pasteIdent _ updated _ _) = do
   n <- now
-  return $ if (n - updated) >= Elapsed (Seconds (fromIntegral timeout)) then Nothing else Just p
-cancelIfElapsed _ _ _ =
-  return Nothing
+  return $ if (ident == pasteIdent && n - updated) >= Elapsed (Seconds (fromIntegral timeout)) then Nothing else Just p
 
 killYankScratch ::
   NvimE e m =>
