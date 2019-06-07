@@ -61,6 +61,15 @@ A floating window containing the yank history is displayed at the cursor.
 After the time configured by [`g:uracil_paste_timeout`](#guracil-paste-timeout) has passed, the window is hidden and
 the currently pasted entry is reset, so that a subsequent paste starts from the top.
 
+**Note** that in order for this to work properly in visual mode, you will have to use the `<cmd>` pseudokey in the
+mapping:
+
+```vim
+xnoremap p <cmd>call UraPaste()<cr>
+```
+
+Using `:` here would start command line mode, which would interfere with the visual mode detection in the plugin.
+
 [Neovim]: https://github.com/neovim/neovim
 [Haskell]: https://www.haskell.org
 [ribosome]: https://github.com/tek/ribosome

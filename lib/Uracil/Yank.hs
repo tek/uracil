@@ -31,16 +31,11 @@ storeEvent (RegEvent _ _ content register regtype) = do
 
 eventValid ::
   NvimE e m =>
-  RegEvent ->
   MonadDeepState s Env m =>
+  RegEvent ->
   m Bool
 eventValid (RegEvent _ _ content register regtype) =
-  check =<< getL @Env Env.paste
-  where
-    check (Just (Paste _ _ _ _ True)) =
-      not <$> visualModeActive
-    check _ =
-      return True
+  isNothing <$> getL @Env Env.paste
 
 storeEventIfValid ::
   NvimE e m =>
