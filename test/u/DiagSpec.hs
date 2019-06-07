@@ -31,6 +31,14 @@ target :: [Text]
 target = [
   "# Diagnostics",
   "",
+  "## Yank History",
+  "* yank: \"* v",
+  "  item1",
+  "* yank: \"* v",
+  "  item2",
+  "  item2 cont",
+  "* yank: \"* v",
+  "  item3", "",
   "## Errors"
   ]
 
