@@ -70,6 +70,13 @@ xnoremap p <cmd>call UraPaste()<cr>
 
 Using `:` here would start command line mode, which would interfere with the visual mode detection in the plugin.
 
+## `UraDiag`
+
+Displays various information about the current state in a scratch buffer:
+
+* yank history
+* errors
+
 [Neovim]: https://github.com/neovim/neovim
 [Haskell]: https://www.haskell.org
 [ribosome]: https://github.com/tek/ribosome
