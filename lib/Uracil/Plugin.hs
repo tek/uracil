@@ -13,6 +13,7 @@ import Uracil.Diag (uraDiag)
 import Uracil.Init (initialize)
 import Uracil.Paste (uraPaste)
 import Uracil.Yank (uraYank)
+import Uracil.YankMenu (uraYankMenu)
 
 handleError :: Error -> Uracil ()
 handleError =
@@ -23,6 +24,7 @@ rpcHandlers =
   [
     $(rpcHandler (cmd []) 'uraDiag),
     $(rpcHandlerDef 'uraPaste),
+    $(rpcHandler (cmd []) 'uraYankMenu),
     $(rpcHandler (autocmd "TextYankPost" . sync) 'uraYank)
     ]
 
