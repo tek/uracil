@@ -12,7 +12,7 @@ import Ribosome.Config.Setting (updateSetting)
 import Ribosome.Nvim.Api.IO (vimGetWindows, vimSetOption)
 import Test.Framework
 
-import Unit (integrationSpecDef, tmuxGuiSpecDef)
+import Unit (integrationSpecDef, tmuxSpecDef)
 import Uracil.Data.Env (Env, Uracil)
 import qualified Uracil.Data.Env as Env (yanks)
 import qualified Uracil.Data.Register as Register (Register(Special))
@@ -60,7 +60,7 @@ normalPasteSpec = do
 
 test_normalPaste :: IO ()
 test_normalPaste =
-  tmuxGuiSpecDef normalPasteSpec
+  tmuxSpecDef normalPasteSpec
 
 visualPasteSpec :: Uracil ()
 visualPasteSpec = do
@@ -82,7 +82,7 @@ visualPasteSpec = do
 
 test_visualPaste :: IO ()
 test_visualPaste =
-  tmuxGuiSpecDef visualPasteSpec
+  tmuxSpecDef visualPasteSpec
 
 cancelWhenCursorMovedSpec :: Uracil ()
 cancelWhenCursorMovedSpec = do

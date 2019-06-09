@@ -17,12 +17,12 @@ import Ribosome.Api.Window (redraw, setLine)
 import Ribosome.Config.Setting (setting)
 import Ribosome.Control.Lock (lockOrWait)
 import qualified Ribosome.Data.FloatOptions as FloatOptions (FloatOptions(height, width))
-import Ribosome.Data.Scratch (Scratch(Scratch))
+import Ribosome.Data.Scratch (Scratch(Scratch, scratchWindow))
 import Ribosome.Data.ScratchOptions (ScratchOptions, defaultScratchOptions)
 import qualified Ribosome.Data.ScratchOptions as ScratchOptions (float)
 import Ribosome.Data.SettingError (SettingError)
 import Ribosome.Msgpack.Error (DecodeError)
-import Ribosome.Nvim.Api.IO (vimCommand, vimGetOption)
+import Ribosome.Nvim.Api.IO (vimCommand, vimGetOption, windowSetOption)
 import Ribosome.Scratch (killScratchByName, showInScratch)
 import System.Hourglass (timeCurrent)
 
@@ -149,7 +149,9 @@ showYankScratch ::
   m Scratch
 showYankScratch = do
   lines' <- yankLines
-  (`showInScratch` yankScratchOptions lines') (NonEmpty.toList lines')
+  scratch <- showInScratch (NonEmpty.toList lines') (yankScratchOptions lines')
+  windowSetOption (scratchWindow scratch) "cursorline" (toMsgpack True)
+  return scratch
 
 selectYankInScratch ::
   NvimE e m =>
@@ -220,7 +222,7 @@ cancelPasteAfter ::
   Int ->
   Ident ->
   m ()
-cancelPasteAfter timeout ident = do
+cancelPasteAfter timeout ident =
   whenM (shouldCancelPaste timeout ident) cancelPaste
 
 waitAndCancelPaste ::

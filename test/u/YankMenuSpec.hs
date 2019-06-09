@@ -9,9 +9,9 @@ import Ribosome.Api.Buffer (currentBufferContent, setCurrentBufferContent)
 import Ribosome.Api.Window (setCurrentLine)
 import Ribosome.Nvim.Api.IO (vimCallFunction)
 import Ribosome.Test.Input (withInput)
-import Ribosome.Test.Tmux (tmuxGuiSpecDef)
 import Test.Framework
 
+import Unit (tmuxSpecDef)
 import Uracil.Data.Env (Env, Uracil)
 import qualified Uracil.Data.Env as Env (yanks)
 import qualified Uracil.Data.Register as Register (Register(Special))
@@ -41,7 +41,7 @@ yankMenuSpec chars = do
   setL @Env Env.yanks items
   setCurrentBufferContent ["1", "2", "3"]
   setCurrentLine 1
-  withInput (Just 0.2) chars uraYankMenu
+  withInput (Just 0.05) chars uraYankMenu
 
 yankChars :: [Text]
 yankChars =
@@ -54,7 +54,7 @@ yankMenuYankSpec = do
 
 test_yankMenuYank :: IO ()
 test_yankMenuYank =
-  tmuxGuiSpecDef yankMenuYankSpec
+  tmuxSpecDef yankMenuYankSpec
 
 pasteChars :: [Text]
 pasteChars =
@@ -67,7 +67,7 @@ yankMenuPasteSpec = do
 
 test_yankMenuPaste :: IO ()
 test_yankMenuPaste =
-  tmuxGuiSpecDef yankMenuPasteSpec
+  tmuxSpecDef yankMenuPasteSpec
 
 ppasteChars :: [Text]
 ppasteChars =
@@ -80,4 +80,4 @@ yankMenuPpasteSpec = do
 
 test_yankMenuPpaste :: IO ()
 test_yankMenuPpaste =
-  tmuxGuiSpecDef yankMenuPpasteSpec
+  tmuxSpecDef yankMenuPpasteSpec
