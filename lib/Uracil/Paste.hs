@@ -2,17 +2,16 @@
 
 module Uracil.Paste where
 
-import Chiasma.Data.Ident (Ident)
-import Chiasma.Data.Ident (Ident, generateIdent, sameIdent)
+import Chiasma.Data.Ident (Ident, generateIdent)
 import Control.Concurrent.Lifted (fork)
 import qualified Control.Lens as Lens (view)
-import Control.Monad.DeepState (modifyML')
 import Data.Foldable (maximum)
 import Data.Hourglass (Elapsed(Elapsed), Seconds(Seconds))
-import qualified Data.List.NonEmpty as NonEmpty (head, toList)
+import qualified Data.List.NonEmpty as NonEmpty (toList)
 import Data.String.QM (qt)
 import qualified Data.Text as Text (isInfixOf, length)
-import Ribosome.Api.Mode (mode, visualModeActive)
+import Ribosome.Api.Mode (visualModeActive)
+import Ribosome.Api.Normal (normal)
 import Ribosome.Api.Undo (undo)
 import Ribosome.Api.Window (redraw, setLine)
 import Ribosome.Config.Setting (setting)
@@ -60,7 +59,7 @@ pasteWith ::
 pasteWith cmd yank = do
   register <- defaultRegister
   loadYank register yank
-  vimCommand ("normal! \"" <> register <> cmd)
+  normal ("\"" <> register <> cmd)
 
 paste ::
   MonadRibo m =>
@@ -115,7 +114,7 @@ yankLines ::
   MonadDeepError e YankError m =>
   m (NonEmpty Text)
 yankLines = do
-  lines' <- NonEmpty.head . Lens.view Yank.text <$$> yanks
+  lines' <- formatLine . Lens.view Yank.text <$$> yanks
   hoistMaybe YankError.EmptyHistory (nonEmpty lines')
   where
     formatLine (h :| t) | null t =
@@ -202,8 +201,8 @@ shouldCancelPaste ::
 shouldCancelPaste timeout ident =
   fromMaybe False <$$> traverse check =<< getL @Env Env.paste
   where
-    check (Paste pasteIdent _ updated _ _) =
-      andM [pasteHasTimedOut timeout updated, pure $ ident == pasteIdent]
+    check (Paste pasteIdent' _ updated _ _) =
+      andM [pasteHasTimedOut timeout updated, pure $ ident == pasteIdent']
 
 cancelPaste ::
   NvimE e m =>
@@ -294,7 +293,7 @@ repaste ::
   MonadDeepState s Env m =>
   Paste ->
   m ()
-repaste (Paste ident index _ _ visual) = do
+repaste (Paste _ index _ _ visual) = do
   count <- length <$> getL @Env Env.yanks
   if count > 0
   then run count

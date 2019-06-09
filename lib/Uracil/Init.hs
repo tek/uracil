@@ -9,7 +9,7 @@ import Ribosome.Internal.IO (retypeNeovim)
 import Ribosome.Orphans ()
 import System.Log.Logger (Priority(ERROR), setLevel, updateGlobalLogger)
 
-import Uracil.Data.Env (Env, Uracil)
+import Uracil.Data.Env (Env)
 import Uracil.Data.Error (Error)
 
 initialize'' ::

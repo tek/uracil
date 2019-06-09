@@ -6,19 +6,19 @@ import qualified Chiasma.Data.Ident as Ident (Ident(Str))
 import qualified Data.List.NonEmpty as NonEmpty (toList)
 import Ribosome.Api.Autocmd (doautocmd)
 import Ribosome.Api.Buffer (currentBufferContent, setCurrentBufferContent)
-import Ribosome.Api.Normal (normal, normalm)
+import Ribosome.Api.Normal (normal)
 import Ribosome.Api.Window (setCurrentCursor)
 import Ribosome.Config.Setting (updateSetting)
-import Ribosome.Nvim.Api.IO (vimCommand, vimGetWindows, vimSetOption)
+import Ribosome.Nvim.Api.IO (vimGetWindows, vimSetOption)
 import Test.Framework
 
-import Unit (integrationSpecDef, specDef, tmuxGuiSpecDef)
+import Unit (integrationSpecDef, tmuxGuiSpecDef)
 import Uracil.Data.Env (Env, Uracil)
 import qualified Uracil.Data.Env as Env (yanks)
 import qualified Uracil.Data.Register as Register (Register(Special))
 import qualified Uracil.Data.RegisterType as RegisterType (RegisterType(Line))
 import Uracil.Data.Yank (Yank(Yank))
-import Uracil.Paste (uraPaste, uraStopPaste)
+import Uracil.Paste (uraPaste)
 import qualified Uracil.Settings as Settings (pasteTimeout)
 
 item1 :: NonEmpty Text

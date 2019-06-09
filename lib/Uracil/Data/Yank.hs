@@ -3,7 +3,7 @@ module Uracil.Data.Yank where
 import Chiasma.Data.Ident (Ident, Identifiable(..))
 import Data.List.NonEmpty (NonEmpty)
 import qualified Data.List.NonEmpty as NonEmpty (toList)
-import Data.Text.Prettyprint.Doc (Pretty(..), line, nest, vsep, (<+>))
+import Data.Text.Prettyprint.Doc (Pretty(..), nest, vsep, (<+>))
 
 import Uracil.Data.Register (Register)
 import Uracil.Data.RegisterType (RegisterType)

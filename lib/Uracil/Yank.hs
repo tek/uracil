@@ -3,19 +3,26 @@ module Uracil.Yank where
 import Chiasma.Data.Ident (Ident, generateIdent, sameIdent)
 import qualified Control.Lens as Lens (element, filtered, firstOf, folded)
 import Data.List.NonEmpty (NonEmpty, nonEmpty)
-import Ribosome.Api.Mode (visualModeActive)
 import Ribosome.Control.Monad.Ribo (prependUnique)
 import Ribosome.Msgpack.Error (DecodeError)
 import Ribosome.Nvim.Api.IO (vimCallFunction, vimGetVvar)
 
 import Uracil.Data.Env (Env)
 import qualified Uracil.Data.Env as Env (paste, yanks)
-import Uracil.Data.Paste (Paste(Paste))
 import Uracil.Data.RegEvent (RegEvent(RegEvent))
-import qualified Uracil.Data.Register as Register (Register(Special))
+import Uracil.Data.Register (Register)
+import qualified Uracil.Data.Register as Register (Register(Special, Empty))
 import Uracil.Data.Yank (Yank(Yank))
 import Uracil.Data.YankError (YankError)
 import qualified Uracil.Data.YankError as YankError (YankError(EmptyHistory, NoSuchYank, EmptyEvent, InvalidYankIndex))
+
+validRegister :: Register -> Bool
+validRegister (Register.Special _) =
+  True
+validRegister Register.Empty =
+  True
+validRegister _ =
+  False
 
 storeEvent ::
   MonadRibo m =>
@@ -23,7 +30,7 @@ storeEvent ::
   MonadDeepState s Env m =>
   MonadDeepError e YankError m =>
   m ()
-storeEvent (RegEvent _ _ content register@(Register.Special _) regtype) = do
+storeEvent (RegEvent _ _ content register regtype) | validRegister register = do
   text <- hoistMaybe YankError.EmptyEvent (nonEmpty content)
   ident <- generateIdent
   let yank = Yank ident register regtype text
@@ -35,9 +42,8 @@ storeEvent _ =
 eventValid ::
   NvimE e m =>
   MonadDeepState s Env m =>
-  RegEvent ->
   m Bool
-eventValid (RegEvent _ _ content register regtype) =
+eventValid =
   isNothing <$> getL @Env Env.paste
 
 storeEventIfValid ::
@@ -47,8 +53,8 @@ storeEventIfValid ::
   MonadDeepState s Env m =>
   MonadDeepError e YankError m =>
   m ()
-storeEventIfValid event =
-  whenM (eventValid event) (storeEvent event)
+storeEventIfValid =
+  whenM eventValid . storeEvent
 
 uraYank ::
   NvimE e m =>
