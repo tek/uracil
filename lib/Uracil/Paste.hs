@@ -12,11 +12,14 @@ import Data.String.QM (qt)
 import qualified Data.Text as Text (isInfixOf, length)
 import Ribosome.Api.Mode (visualModeActive)
 import Ribosome.Api.Normal (normal)
+import Ribosome.Api.Register (getregList, getregtype)
 import Ribosome.Api.Undo (undo)
 import Ribosome.Api.Window (redraw, setLine)
 import Ribosome.Config.Setting (setting)
 import Ribosome.Control.Lock (lockOrWait)
 import qualified Ribosome.Data.FloatOptions as FloatOptions (FloatOptions(height, width))
+import Ribosome.Data.Register (Register, registerRepr)
+import qualified Ribosome.Data.Register as Register (Register(..))
 import Ribosome.Data.Scratch (Scratch(Scratch, scratchWindow))
 import Ribosome.Data.ScratchOptions (ScratchOptions, defaultScratchOptions)
 import qualified Ribosome.Data.ScratchOptions as ScratchOptions (float)
@@ -27,7 +30,7 @@ import Ribosome.Scratch (killScratchByName, showInScratch)
 import System.Hourglass (timeCurrent)
 
 import Uracil.Data.Env (Env)
-import qualified Uracil.Data.Env as Env (paste, yanks)
+import qualified Uracil.Data.Env as Env (paste, previousStar, yanks)
 import Uracil.Data.Paste (Paste(Paste))
 import qualified Uracil.Data.Paste as Paste (scratch)
 import Uracil.Data.Yank (Yank)
@@ -35,13 +38,13 @@ import qualified Uracil.Data.Yank as Yank (text)
 import Uracil.Data.YankError (YankError)
 import qualified Uracil.Data.YankError as YankError (YankError(EmptyHistory))
 import qualified Uracil.Settings as Settings (pasteTimeout)
-import Uracil.Yank (loadYank, yankByIdent, yankByIndex, yanks)
+import Uracil.Yank (loadYank, storeYank, yankByIdent, yankByIndex, yanks)
 
 defaultRegister ::
   NvimE e m =>
-  m Text
+  m Register
 defaultRegister =
-  decide <$> vimGetOption "clipboard"
+  Register.Special . decide <$> vimGetOption "clipboard"
   where
     decide "unnamed" =
       "*"
@@ -59,7 +62,7 @@ pasteWith ::
 pasteWith cmd yank = do
   register <- defaultRegister
   loadYank register yank
-  normal ("\"" <> register <> cmd)
+  normal (registerRepr register <> cmd)
 
 paste ::
   MonadRibo m =>
@@ -285,6 +288,33 @@ exclusiveUpdatePaste ::
 exclusiveUpdatePaste =
   lockOrWait "uracil-update-paste" . updatePaste
 
+pullStarRegister ::
+  NvimE e m =>
+  MonadRibo m =>
+  MonadDeepState s Env m =>
+  MonadDeepError e YankError m =>
+  [Text] ->
+  m ()
+pullStarRegister content = do
+  setL @Env Env.previousStar content
+  tpe <- getregtype register
+  storeYank tpe register content
+  where
+    register =
+      Register.Special "*"
+
+syncClipboard ::
+  NvimE e m =>
+  MonadRibo m =>
+  MonadDeepState s Env m =>
+  MonadDeepError e YankError m =>
+  m ()
+syncClipboard = do
+  regStar <- getregList (Register.Special "*")
+  regUnnamed <- getregList (Register.Special "\"")
+  previousStar <- getL @Env Env.previousStar
+  when (regStar /= regUnnamed && previousStar /= regStar) (pullStarRegister regStar)
+
 repaste ::
   NvimE e m =>
   MonadRibo m =>
@@ -306,7 +336,7 @@ repaste (Paste _ index _ _ visual) = do
       reset *>
       exclusiveUpdatePaste ((index + 1) `mod` count)
     reset =
-      when visual $ vimCommand "normal! gv"
+      when visual $ normal "gv"
 
 startPaste ::
   NvimE e m =>
@@ -319,6 +349,7 @@ startPaste ::
   m ()
 startPaste =
   killYankScratch *>
+  syncClipboard *>
   updatePaste 0
 
 uraPaste ::

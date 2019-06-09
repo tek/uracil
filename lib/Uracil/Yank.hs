@@ -3,15 +3,17 @@ module Uracil.Yank where
 import Chiasma.Data.Ident (Ident, generateIdent, sameIdent)
 import qualified Control.Lens as Lens (element, filtered, firstOf, folded)
 import Data.List.NonEmpty (NonEmpty, nonEmpty)
+import Ribosome.Api.Register (setregAs)
 import Ribosome.Control.Monad.Ribo (prependUnique)
+import Ribosome.Data.Register (Register)
+import qualified Ribosome.Data.Register as Register (Register(Special, Empty))
+import Ribosome.Data.RegisterType (RegisterType)
 import Ribosome.Msgpack.Error (DecodeError)
 import Ribosome.Nvim.Api.IO (vimCallFunction, vimGetVvar)
 
 import Uracil.Data.Env (Env)
 import qualified Uracil.Data.Env as Env (paste, yanks)
 import Uracil.Data.RegEvent (RegEvent(RegEvent))
-import Uracil.Data.Register (Register)
-import qualified Uracil.Data.Register as Register (Register(Special, Empty))
 import Uracil.Data.Yank (Yank(Yank))
 import Uracil.Data.YankError (YankError)
 import qualified Uracil.Data.YankError as YankError (YankError(EmptyHistory, NoSuchYank, EmptyEvent, InvalidYankIndex))
@@ -24,18 +26,29 @@ validRegister Register.Empty =
 validRegister _ =
   False
 
-storeEvent ::
+storeYank ::
   MonadRibo m =>
-  RegEvent ->
   MonadDeepState s Env m =>
   MonadDeepError e YankError m =>
+  RegisterType ->
+  Register ->
+  [Text] ->
   m ()
-storeEvent (RegEvent _ _ content register regtype) | validRegister register = do
+storeYank regtype register content = do
   text <- hoistMaybe YankError.EmptyEvent (nonEmpty content)
   ident <- generateIdent
   let yank = Yank ident register regtype text
   showDebug "yank" yank
   prependUnique @Env Env.yanks yank
+
+storeEvent ::
+  MonadRibo m =>
+  MonadDeepState s Env m =>
+  MonadDeepError e YankError m =>
+  RegEvent ->
+  m ()
+storeEvent (RegEvent _ _ content register regtype) | validRegister register =
+  storeYank regtype register content
 storeEvent _ =
   return ()
 
@@ -104,12 +117,12 @@ yankByIndex index =
 loadYank ::
   MonadRibo m =>
   NvimE e m =>
-  Text ->
+  Register ->
   Yank ->
   m ()
 loadYank register yank@(Yank _ _ tpe text) = do
   showDebug "loading yank:" yank
-  vimCallFunction "setreg" [toMsgpack register, toMsgpack text, toMsgpack tpe]
+  setregAs tpe register text
 
 loadYankIdent ::
   NvimE e m =>
@@ -119,4 +132,4 @@ loadYankIdent ::
   Ident ->
   m ()
 loadYankIdent =
-  loadYank "\"" <=< yankByIdent
+  loadYank (Register.Special "\"") <=< yankByIdent

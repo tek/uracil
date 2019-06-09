@@ -2,8 +2,8 @@
 
 module Uracil.Data.RegEvent where
 
-import Uracil.Data.Register (Register)
-import Uracil.Data.RegisterType (RegisterType)
+import Ribosome.Data.Register (Register)
+import Ribosome.Data.RegisterType (RegisterType)
 
 data RegEvent =
   RegEvent {

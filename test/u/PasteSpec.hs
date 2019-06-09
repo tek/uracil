@@ -7,16 +7,16 @@ import qualified Data.List.NonEmpty as NonEmpty (toList)
 import Ribosome.Api.Autocmd (doautocmd)
 import Ribosome.Api.Buffer (currentBufferContent, setCurrentBufferContent)
 import Ribosome.Api.Normal (normal)
-import Ribosome.Api.Window (setCurrentCursor)
+import Ribosome.Api.Window (setCurrentCursor, setCurrentLine)
 import Ribosome.Config.Setting (updateSetting)
-import Ribosome.Nvim.Api.IO (vimGetWindows, vimSetOption)
+import Ribosome.Nvim.Api.IO (vimCallFunction, vimGetWindows, vimSetOption)
 import Test.Framework
 
+import qualified Ribosome.Data.Register as Register (Register(Special))
+import qualified Ribosome.Data.RegisterType as RegisterType (RegisterType(Line))
 import Unit (integrationSpecDef, tmuxSpecDef)
 import Uracil.Data.Env (Env, Uracil)
 import qualified Uracil.Data.Env as Env (yanks)
-import qualified Uracil.Data.Register as Register (Register(Special))
-import qualified Uracil.Data.RegisterType as RegisterType (RegisterType(Line))
 import Uracil.Data.Yank (Yank(Yank))
 import Uracil.Paste (uraPaste)
 import qualified Uracil.Settings as Settings (pasteTimeout)
@@ -96,3 +96,20 @@ cancelWhenCursorMovedSpec = do
 test_cancelWhenCursorMoved :: IO ()
 test_cancelWhenCursorMoved =
   integrationSpecDef cancelWhenCursorMovedSpec
+
+syncSelectionSpec :: Uracil ()
+syncSelectionSpec = do
+  setL @Env Env.yanks yanks
+  setCurrentBufferContent ["line1", "line2"]
+  setCurrentLine 0
+  () <- vimCallFunction "setreg" (toMsgpack <$> ["*", extra, "V"])
+  uraPaste
+  gassertEqual ["line1", extra, "line2"] =<< currentBufferContent
+  dbgs =<< getL @Env Env.yanks
+  where
+    extra =
+      "external" :: Text
+
+test_syncSelection :: IO ()
+test_syncSelection =
+  tmuxSpecDef syncSelectionSpec

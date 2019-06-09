@@ -17,11 +17,12 @@ data Env =
   Env {
     _yanks :: [Yank],
     _deletes :: [Yank],
-    _paste :: Maybe Paste
+    _paste :: Maybe Paste,
+    _previousStar :: [Text]
   }
   deriving Show
 
 deepLenses ''Env
 
 instance Default Env where
-  def = Env def def def
+  def = Env def def def def

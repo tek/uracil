@@ -5,8 +5,8 @@ import Data.List.NonEmpty (NonEmpty)
 import qualified Data.List.NonEmpty as NonEmpty (toList)
 import Data.Text.Prettyprint.Doc (Pretty(..), nest, vsep, (<+>))
 
-import Uracil.Data.Register (Register)
-import Uracil.Data.RegisterType (RegisterType)
+import Ribosome.Data.Register (Register)
+import Ribosome.Data.RegisterType (RegisterType)
 
 data Yank =
   Yank {

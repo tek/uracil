@@ -11,11 +11,11 @@ import Ribosome.Nvim.Api.IO (vimCallFunction)
 import Ribosome.Test.Input (withInput)
 import Test.Framework
 
+import qualified Ribosome.Data.Register as Register (Register(Special))
+import qualified Ribosome.Data.RegisterType as RegisterType (RegisterType(Line))
 import Unit (tmuxSpecDef)
 import Uracil.Data.Env (Env, Uracil)
 import qualified Uracil.Data.Env as Env (yanks)
-import qualified Uracil.Data.Register as Register (Register(Special))
-import qualified Uracil.Data.RegisterType as RegisterType (RegisterType(Line))
 import Uracil.Data.Yank (Yank(Yank))
 import Uracil.YankMenu (uraYankMenu)
 

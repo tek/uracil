@@ -7,11 +7,11 @@ import Control.Monad.IO.Class (liftIO)
 import Ribosome.Api.Buffer (currentBufferContent)
 import Test.Framework
 
+import qualified Ribosome.Data.Register as Register (Register(Special))
+import qualified Ribosome.Data.RegisterType as RegisterType (RegisterType(Line))
 import Unit (specDef)
 import Uracil.Data.Env (Env, Uracil)
 import qualified Uracil.Data.Env as Env (yanks)
-import qualified Uracil.Data.Register as Register (Register(Special))
-import qualified Uracil.Data.RegisterType as RegisterType (RegisterType(Line))
 import Uracil.Data.Yank (Yank(Yank))
 import Uracil.Diag (uraDiag)
 
