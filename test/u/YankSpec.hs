@@ -2,7 +2,6 @@
 
 module YankSpec (htf_thisModulesTests) where
 
-import Neovim (Neovim)
 import Ribosome.Api.Buffer (setCurrentBufferContent)
 import Ribosome.Api.Window (setCurrentLine)
 import Ribosome.Control.Ribosome (newRibosome)
@@ -10,6 +9,7 @@ import Ribosome.Nvim.Api.IO (vimCommand)
 import Ribosome.Test.Embed (integrationSpecDef)
 import Test.Framework
 
+import Uracil.Data.Env (Uracil)
 import Uracil.Plugin (plugin')
 
 lines' :: [Text]
@@ -21,7 +21,7 @@ lines' =
     l i =
       "line " <> show i
 
-yankSpec :: ExceptT RpcError (Neovim ()) ()
+yankSpec :: Uracil ()
 yankSpec = do
   setCurrentBufferContent lines'
   setCurrentLine 1

@@ -2,12 +2,12 @@ module Config where
 
 import Ribosome.Data.Setting (Setting(Setting))
 import Ribosome.Msgpack.Encode (MsgpackEncode(..))
-import Ribosome.Test.Embed (TestConfig(tcVariables), Vars(..))
+import Ribosome.Test.Embed (TestConfig(tcVariables), Vars(..), varsFromList)
 import qualified Ribosome.Test.Embed as E (defaultTestConfig, defaultTestConfigWith)
 
 defaultVars :: IO Vars
 defaultVars =
-  return $ Vars []
+  return $ Vars def
 
 defaultTestConfigWith :: Vars -> TestConfig
 defaultTestConfigWith = E.defaultTestConfigWith "uracil"
@@ -26,7 +26,7 @@ var ::
   TestConfig ->
   TestConfig
 var name val conf =
-  conf { tcVariables = tcVariables conf <> Vars [(name, toMsgpack val)] }
+  conf { tcVariables = tcVariables conf <> varsFromList [(name, toMsgpack val)] }
 
 svar ::
   MsgpackEncode a =>

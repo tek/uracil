@@ -1,7 +1,5 @@
 module Uracil.Init where
 
-import Control.Monad.IO.Class (liftIO)
-import Data.Default (Default(def))
 import Neovim (Neovim)
 import Neovim.Context.Internal (Config(customConfig), asks')
 import Ribosome.Control.Monad.Ribo (RNeovim, runRibo)
@@ -12,19 +10,22 @@ import Ribosome.Orphans ()
 import System.Log.Logger (Priority(ERROR), setLevel, updateGlobalLogger)
 
 import Uracil.Data.Env (Env, Uracil)
+import Uracil.Data.Error (Error)
 
-initialize'' :: Uracil ()
+initialize'' ::
+  MonadDeepError e Error m =>
+  m ()
 initialize'' =
   return ()
 
 initialize' :: RNeovim Env (Ribosome Env)
 initialize' = do
-  result <- runRibo initialize''
+  result <- runRibo (initialize'' @Error)
   reportError' "init" result
   asks' customConfig
 
 initialize :: Neovim e (Ribosome Env)
 initialize = do
   liftIO $ updateGlobalLogger "Neovim.Plugin" (setLevel ERROR)
-  ribo <- newRibosome "ura" def
+  ribo <- newRibosome "uracil" def
   retypeNeovim (const ribo) initialize'

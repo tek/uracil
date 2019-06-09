@@ -4,18 +4,22 @@ module PasteSpec (htf_thisModulesTests) where
 
 import qualified Chiasma.Data.Ident as Ident (Ident(Str))
 import qualified Data.List.NonEmpty as NonEmpty (toList)
+import Ribosome.Api.Autocmd (doautocmd)
 import Ribosome.Api.Buffer (currentBufferContent, setCurrentBufferContent)
+import Ribosome.Api.Normal (normal, normalm)
 import Ribosome.Api.Window (setCurrentCursor)
+import Ribosome.Config.Setting (updateSetting)
 import Ribosome.Nvim.Api.IO (vimCommand, vimGetWindows, vimSetOption)
 import Test.Framework
-import Unit (tmuxGuiSpecDef)
 
+import Unit (integrationSpecDef, specDef, tmuxGuiSpecDef)
 import Uracil.Data.Env (Env, Uracil)
 import qualified Uracil.Data.Env as Env (yanks)
 import qualified Uracil.Data.Register as Register (Register(Special))
 import qualified Uracil.Data.RegisterType as RegisterType (RegisterType(Line))
 import Uracil.Data.Yank (Yank(Yank))
-import Uracil.Paste (uraPaste)
+import Uracil.Paste (uraPaste, uraStopPaste)
+import qualified Uracil.Settings as Settings (pasteTimeout)
 
 item1 :: NonEmpty Text
 item1 =
@@ -63,7 +67,7 @@ visualPasteSpec = do
   setL @Env Env.yanks yanks
   setCurrentBufferContent ["line1", "word for word"]
   setCurrentCursor 1 5
-  vimCommand "normal! viw"
+  normal "viw"
   uraPaste
   checkContent item1
   uraPaste
@@ -79,3 +83,16 @@ visualPasteSpec = do
 test_visualPaste :: IO ()
 test_visualPaste =
   tmuxGuiSpecDef visualPasteSpec
+
+cancelWhenCursorMovedSpec :: Uracil ()
+cancelWhenCursorMovedSpec = do
+  updateSetting Settings.pasteTimeout 93
+  setL @Env Env.yanks yanks
+  uraPaste
+  gassertEqual 2 . length =<< vimGetWindows
+  doautocmd "CursorMoved"
+  await (gassertEqual 1 . length) vimGetWindows
+
+test_cancelWhenCursorMoved :: IO ()
+test_cancelWhenCursorMoved =
+  integrationSpecDef cancelWhenCursorMovedSpec

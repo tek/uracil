@@ -12,6 +12,7 @@ import Uracil.Data.Env (Env)
 import qualified Uracil.Data.Env as Env (paste, yanks)
 import Uracil.Data.Paste (Paste(Paste))
 import Uracil.Data.RegEvent (RegEvent(RegEvent))
+import qualified Uracil.Data.Register as Register (Register(Special))
 import Uracil.Data.Yank (Yank(Yank))
 import Uracil.Data.YankError (YankError)
 import qualified Uracil.Data.YankError as YankError (YankError(EmptyHistory, NoSuchYank, EmptyEvent, InvalidYankIndex))
@@ -22,12 +23,14 @@ storeEvent ::
   MonadDeepState s Env m =>
   MonadDeepError e YankError m =>
   m ()
-storeEvent (RegEvent _ _ content register regtype) = do
+storeEvent (RegEvent _ _ content register@(Register.Special _) regtype) = do
   text <- hoistMaybe YankError.EmptyEvent (nonEmpty content)
   ident <- generateIdent
   let yank = Yank ident register regtype text
   showDebug "yank" yank
   prependUnique @Env Env.yanks yank
+storeEvent _ =
+  return ()
 
 eventValid ::
   NvimE e m =>
@@ -55,7 +58,7 @@ uraYank ::
   MonadDeepState s Env m =>
   m ()
 uraYank =
-  catchAs @DecodeError () (storeEventIfValid =<< vimGetVvar "event")
+  ignoreError @DecodeError (storeEventIfValid =<< vimGetVvar "event")
 
 yanks ::
   MonadDeepState s Env m =>

@@ -2,16 +2,23 @@ module Unit where
 
 import Chiasma.Native.Api (TmuxNative(TmuxNative))
 import Data.Default (def)
+import Neovim.Plugin (Plugin)
 import Ribosome.Config.Setting (updateSetting)
 import Ribosome.Config.Settings (tmuxSocket)
+import Ribosome.Control.Ribosome (Ribosome, newRibosome)
+import Ribosome.Error.Report.Class (ReportError)
+import Ribosome.Plugin.RpcHandler (RpcHandler)
 import Ribosome.Test.Embed (TestConfig(..), Vars)
+import qualified Ribosome.Test.Embed as Ribosome (integrationSpec, integrationSpecDef)
 import Ribosome.Test.Orphans ()
 import qualified Ribosome.Test.Tmux as Ribosome (tmuxGuiSpec, tmuxSpec)
 import Ribosome.Test.Unit (unitSpec)
-import UnliftIO (throwString)
 
 import Config (defaultTestConfig, defaultTestConfigWith, testConf)
 import Uracil.Data.Env (Env, Uracil)
+import Uracil.Data.Error (Error)
+import Uracil.Init (initialize'')
+import Uracil.Plugin (plugin')
 
 specConfig :: TestConfig -> Env -> Uracil () -> IO ()
 specConfig =
@@ -44,7 +51,7 @@ withTmux :: Uracil () -> TmuxNative -> Uracil ()
 withTmux thunk (TmuxNative (Just socket)) = do
   _ <- updateSetting tmuxSocket socket
   thunk
-withTmux _ _ = throwString "no socket in test tmux"
+withTmux _ _ = fail "no socket in test tmux"
 
 tmuxSpec :: (TestConfig -> TestConfig) -> Uracil () -> IO ()
 tmuxSpec reconf thunk =
@@ -67,3 +74,28 @@ tmuxSpecDef =
 tmuxGuiSpecDef :: Uracil () -> IO ()
 tmuxGuiSpecDef =
   tmuxGuiSpec def
+
+integrationSpec ::
+  NvimE e m =>
+  MonadIO m =>
+  ReportError e =>
+  RpcHandler e env m =>
+  (TestConfig -> IO TestConfig) ->
+  Plugin env ->
+  m () ->
+  IO ()
+integrationSpec reconf plug thunk = do
+  conf <- reconf defaultTestConfig
+  Ribosome.integrationSpec conf plug thunk
+
+integrationSpecDef ::
+  NvimE e m =>
+  MonadIO m =>
+  ReportError e =>
+  RpcHandler e (Ribosome Env) m =>
+  MonadDeepError e Error m =>
+  m () ->
+  IO ()
+integrationSpecDef thunk = do
+  ribo <- newRibosome "uracil" def
+  integrationSpec pure (plugin' ribo) (initialize'' *> thunk)

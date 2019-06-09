@@ -1,3 +1,5 @@
+{-# LANGUAGE QuasiQuotes #-}
+
 module Uracil.Paste where
 
 import Chiasma.Data.Ident (Ident)
@@ -102,6 +104,12 @@ currentPaste ::
 currentPaste =
   getL @Env Env.paste
 
+pasteActive ::
+  MonadDeepState s Env m =>
+  m Bool
+pasteActive =
+  isJust <$> currentPaste
+
 yankLines ::
   MonadDeepState s Env m =>
   MonadDeepError e YankError m =>
@@ -168,26 +176,43 @@ now ::
 now =
   liftIO timeCurrent
 
-cancelIfElapsed ::
-  NvimE e m =>
-  MonadRibo m =>
-  Int ->
-  Ident ->
-  Paste ->
-  m (Maybe Paste)
-cancelIfElapsed timeout ident p@(Paste pasteIdent _ updated _ _) = do
-  n <- now
-  return $ if ident == pasteIdent && timedOut n then Nothing else Just p
-  where
-    timedOut n =
-      (n - updated) >= Elapsed (Seconds (fromIntegral timeout))
-
 killYankScratch ::
   NvimE e m =>
   MonadRibo m =>
   m ()
 killYankScratch =
   killScratchByName yankScratchName
+
+pasteHasTimedOut ::
+  MonadIO m =>
+  Int ->
+  Elapsed ->
+  m Bool
+pasteHasTimedOut timeout updated = do
+  n <- now
+  return $ (n - updated) >= Elapsed (Seconds (fromIntegral timeout))
+
+shouldCancelPaste ::
+  NvimE e m =>
+  MonadRibo m =>
+  MonadDeepState s Env m =>
+  Int ->
+  Ident ->
+  m Bool
+shouldCancelPaste timeout ident =
+  fromMaybe False <$$> traverse check =<< getL @Env Env.paste
+  where
+    check (Paste pasteIdent _ updated _ _) =
+      andM [pasteHasTimedOut timeout updated, pure $ ident == pasteIdent]
+
+cancelPaste ::
+  NvimE e m =>
+  MonadRibo m =>
+  MonadDeepState s Env m =>
+  m ()
+cancelPaste =
+  setL @Env Env.paste Nothing *>
+  killYankScratch
 
 cancelPasteAfter ::
   NvimE e m =>
@@ -197,8 +222,7 @@ cancelPasteAfter ::
   Ident ->
   m ()
 cancelPasteAfter timeout ident = do
-  canceled <- isNothing <$> modifyML' @Env Env.paste (join <$$> traverse (cancelIfElapsed timeout ident))
-  when canceled killYankScratch
+  whenM (shouldCancelPaste timeout ident) cancelPaste
 
 waitAndCancelPaste ::
   MonadRibo m =>
@@ -307,3 +331,15 @@ uraPaste ::
   m ()
 uraPaste =
   maybe startPaste repaste =<< currentPaste
+
+uraStopPaste ::
+  NvimE e m =>
+  MonadRibo m =>
+  MonadBaseControl IO m =>
+  MonadDeepError e SettingError m =>
+  MonadDeepError e DecodeError m =>
+  MonadDeepError e YankError m =>
+  MonadDeepState s Env m =>
+  m ()
+uraStopPaste =
+  whenM pasteActive cancelPaste
