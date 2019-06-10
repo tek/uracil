@@ -11,12 +11,18 @@ import System.Log.Logger (Priority(ERROR), setLevel, updateGlobalLogger)
 
 import Uracil.Data.Env (Env)
 import Uracil.Data.Error (Error)
+import Uracil.Data.YankError (YankError)
+import Uracil.Paste (syncClipboard)
 
 initialize'' ::
+  NvimE e m =>
+  MonadRibo m =>
   MonadDeepError e Error m =>
+  MonadDeepError e YankError m =>
+  MonadDeepState s Env m =>
   m ()
 initialize'' =
-  return ()
+  syncClipboard
 
 initialize' :: RNeovim Env (Ribosome Env)
 initialize' = do

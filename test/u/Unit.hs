@@ -17,6 +17,7 @@ import Ribosome.Test.Unit (unitSpec)
 import Config (defaultTestConfig, defaultTestConfigWith, testConf)
 import Uracil.Data.Env (Env, Uracil)
 import Uracil.Data.Error (Error)
+import Uracil.Data.YankError (YankError)
 import Uracil.Init (initialize'')
 import Uracil.Plugin (plugin')
 
@@ -90,10 +91,13 @@ integrationSpec reconf plug thunk = do
 
 integrationSpecDef ::
   NvimE e m =>
+  MonadRibo m =>
   MonadIO m =>
   ReportError e =>
   RpcHandler e (Ribosome Env) m =>
   MonadDeepError e Error m =>
+  MonadDeepError e YankError m =>
+  MonadDeepState s Env m =>
   m () ->
   IO ()
 integrationSpecDef thunk = do
