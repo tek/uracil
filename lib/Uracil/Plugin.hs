@@ -1,6 +1,6 @@
 module Uracil.Plugin where
 
-import qualified Data.Map as Map (empty)
+import qualified Data.Map.Strict as Map (empty)
 import Neovim (Neovim, NeovimPlugin, Plugin(..), wrapPlugin)
 import Ribosome.Control.Monad.Ribo (Ribo)
 import Ribosome.Control.Ribosome (Ribosome)

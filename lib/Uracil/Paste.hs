@@ -39,6 +39,7 @@ import Uracil.Data.YankError (YankError)
 import qualified Uracil.Data.YankError as YankError (YankError(EmptyHistory))
 import qualified Uracil.Settings as Settings (pasteTimeout)
 import Uracil.Yank (loadYank, storeYank, yankByIdent, yankByIndex, yanks)
+import Uracil.YankScratch (ensureYankScratch, killYankScratch, selectYankInScratch)
 
 defaultRegister ::
   NvimE e m =>
@@ -112,85 +113,11 @@ pasteActive ::
 pasteActive =
   isJust <$> currentPaste
 
-yankLines ::
-  MonadDeepState s Env m =>
-  MonadDeepError e YankError m =>
-  m (NonEmpty Text)
-yankLines = do
-  lines' <- formatLine . Lens.view Yank.text <$$> yanks
-  hoistMaybe YankError.EmptyHistory (nonEmpty lines')
-  where
-    formatLine (h :| t) | null t =
-      h
-    formatLine (h :| t) =
-      h <> [qt| [${len}]|]
-      where
-        len :: Text
-        len = show (length t)
-
-yankScratchName :: Text
-yankScratchName =
-  "uracil-yanks"
-
-yankScratchOptions :: NonEmpty Text -> ScratchOptions
-yankScratchOptions lines' =
-  scratchFloat float . scratchSyntax [syntax] . defaultScratchOptions $ yankScratchName
-  where
-    float =
-      def { FloatOptions.width = width, FloatOptions.height = height }
-    width =
-      min 40 (maximum (Text.length <$> lines')) + 5
-    height =
-      max 1 $ min 10 (length lines')
-    syntax =
-      Syntax [syntaxMatch "UraSelected" "^.*\\%#.*$"] [] [selectedHl]
-    selectedHl =
-      HiLink "UraSelected" "PmenuSel"
-
-
-showYankScratch ::
-  NvimE e m =>
-  MonadRibo m =>
-  MonadDeepError e DecodeError m =>
-  MonadDeepError e YankError m =>
-  MonadDeepState s Env m =>
-  m Scratch
-showYankScratch = do
-  lines' <- yankLines
-  scratch <- showInScratch (NonEmpty.toList lines') (yankScratchOptions lines')
-  windowSetOption (scratchWindow scratch) "cursorline" (toMsgpack False)
-  return scratch
-
-selectYankInScratch ::
-  NvimE e m =>
-  Scratch ->
-  Int ->
-  m ()
-selectYankInScratch (Scratch _ _ window _ _) =
-  setLine window
-
-ensureYankScratch ::
-  NvimE e m =>
-  MonadRibo m =>
-  MonadDeepError e DecodeError m =>
-  MonadDeepError e YankError m =>
-  MonadDeepState s Env m =>
-  m Scratch
-ensureYankScratch =
-  maybe showYankScratch (pure . Lens.view Paste.scratch) =<< getL @Env Env.paste
-
 now ::
   MonadIO m =>
   m Elapsed
 now =
   liftIO timeCurrent
-
-killYankScratch ::
-  NvimE e m =>
-  MonadRibo m =>
-  m ()
-killYankScratch =
-  killScratchByName yankScratchName
 
 pasteHasTimedOut ::
   MonadIO m =>

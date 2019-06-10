@@ -3,7 +3,7 @@ module Uracil.YankMenu where
 import Chiasma.Data.Ident (Ident, identText, parseIdent)
 import Conduit (yieldMany)
 import qualified Control.Lens as Lens (view)
-import qualified Data.Map as Map (fromList)
+import qualified Data.Map.Strict as Map (fromList)
 import qualified Data.Text as Text (length, take)
 import Ribosome.Menu.Data.Menu (Menu)
 import Ribosome.Menu.Data.MenuConsumerAction (MenuConsumerAction)
