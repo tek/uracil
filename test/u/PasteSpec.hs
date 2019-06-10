@@ -112,7 +112,6 @@ syncSelectionSpec = do
   setregLine starRegister [extra]
   uraPaste
   gassertEqual ["line1", extra, "line2"] =<< currentBufferContent
-  getL @Env Env.yanks
   where
     extra =
       "external" :: Text
