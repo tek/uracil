@@ -21,9 +21,9 @@ import qualified Ribosome.Data.FloatOptions as FloatOptions (FloatOptions(height
 import Ribosome.Data.Register (Register, registerRepr)
 import qualified Ribosome.Data.Register as Register (Register(..))
 import Ribosome.Data.Scratch (Scratch(Scratch, scratchWindow))
-import Ribosome.Data.ScratchOptions (ScratchOptions, defaultScratchOptions)
-import qualified Ribosome.Data.ScratchOptions as ScratchOptions (float)
+import Ribosome.Data.ScratchOptions (ScratchOptions, defaultScratchOptions, scratchFloat, scratchSyntax)
 import Ribosome.Data.SettingError (SettingError)
+import Ribosome.Data.Syntax (HiLink(HiLink), Syntax(Syntax), syntaxMatch)
 import Ribosome.Msgpack.Error (DecodeError)
 import Ribosome.Nvim.Api.IO (vimGetOption, windowSetOption)
 import Ribosome.Scratch (killScratchByName, showInScratch)
@@ -134,14 +134,19 @@ yankScratchName =
 
 yankScratchOptions :: NonEmpty Text -> ScratchOptions
 yankScratchOptions lines' =
-  (defaultScratchOptions yankScratchName) { ScratchOptions.float = Just floatOptions }
+  scratchFloat float . scratchSyntax [syntax] . defaultScratchOptions $ yankScratchName
   where
-    floatOptions =
+    float =
       def { FloatOptions.width = width, FloatOptions.height = height }
     width =
       min 40 (maximum (Text.length <$> lines')) + 5
     height =
       max 1 $ min 10 (length lines')
+    syntax =
+      Syntax [syntaxMatch "UraSelected" "^.*\\%#.*$"] [] [selectedHl]
+    selectedHl =
+      HiLink "UraSelected" "PmenuSel"
+
 
 showYankScratch ::
   NvimE e m =>
@@ -153,7 +158,7 @@ showYankScratch ::
 showYankScratch = do
   lines' <- yankLines
   scratch <- showInScratch (NonEmpty.toList lines') (yankScratchOptions lines')
-  windowSetOption (scratchWindow scratch) "cursorline" (toMsgpack True)
+  windowSetOption (scratchWindow scratch) "cursorline" (toMsgpack False)
   return scratch
 
 selectYankInScratch ::

@@ -15,7 +15,7 @@ import Test.Framework
 
 import qualified Ribosome.Data.Register as Register (Register(Special))
 import qualified Ribosome.Data.RegisterType as RegisterType (RegisterType(Line))
-import Unit (integrationSpecDef, tmuxSpecDef)
+import Unit
 import Uracil.Data.Env (Env, Uracil)
 import qualified Uracil.Data.Env as Env (yanks)
 import Uracil.Data.Yank (Yank(Yank))
