@@ -7,9 +7,10 @@ import qualified Data.List.NonEmpty as NonEmpty (toList)
 import Ribosome.Api.Autocmd (doautocmd)
 import Ribosome.Api.Buffer (currentBufferContent, setCurrentBufferContent)
 import Ribosome.Api.Normal (normal)
+import Ribosome.Api.Register (setregLine, starRegister)
 import Ribosome.Api.Window (setCurrentCursor, setCurrentLine)
 import Ribosome.Config.Setting (updateSetting)
-import Ribosome.Nvim.Api.IO (vimCallFunction, vimGetWindows, vimSetOption)
+import Ribosome.Nvim.Api.IO (vimGetWindows, vimSetOption)
 import Test.Framework
 
 import qualified Ribosome.Data.Register as Register (Register(Special))
@@ -44,8 +45,13 @@ yanks =
     item ident =
       Yank ident (Register.Special "*") RegisterType.Line
 
+clearStar :: Uracil ()
+clearStar =
+  setregLine starRegister [""]
+
 normalPasteSpec :: Uracil ()
 normalPasteSpec = do
+  clearStar
   vimSetOption "clipboard" (toMsgpack ("unnamed,unnamedplus" :: Text))
   setL @Env Env.yanks yanks
   uraPaste
@@ -64,6 +70,7 @@ test_normalPaste =
 
 visualPasteSpec :: Uracil ()
 visualPasteSpec = do
+  clearStar
   setL @Env Env.yanks yanks
   setCurrentBufferContent ["line1", "word for word"]
   setCurrentCursor 1 5
@@ -102,10 +109,10 @@ syncSelectionSpec = do
   setL @Env Env.yanks yanks
   setCurrentBufferContent ["line1", "line2"]
   setCurrentLine 0
-  () <- vimCallFunction "setreg" (toMsgpack <$> ["*", extra, "V"])
+  setregLine starRegister [extra]
   uraPaste
   gassertEqual ["line1", extra, "line2"] =<< currentBufferContent
-  dbgs =<< getL @Env Env.yanks
+  getL @Env Env.yanks
   where
     extra =
       "external" :: Text

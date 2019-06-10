@@ -25,7 +25,7 @@ import Ribosome.Data.ScratchOptions (ScratchOptions, defaultScratchOptions)
 import qualified Ribosome.Data.ScratchOptions as ScratchOptions (float)
 import Ribosome.Data.SettingError (SettingError)
 import Ribosome.Msgpack.Error (DecodeError)
-import Ribosome.Nvim.Api.IO (vimCommand, vimGetOption, windowSetOption)
+import Ribosome.Nvim.Api.IO (vimGetOption, windowSetOption)
 import Ribosome.Scratch (killScratchByName, showInScratch)
 import System.Hourglass (timeCurrent)
 
@@ -313,7 +313,7 @@ syncClipboard = do
   regStar <- getregList (Register.Special "*")
   regUnnamed <- getregList (Register.Special "\"")
   previousStar <- getL @Env Env.previousStar
-  when (regStar /= regUnnamed && previousStar /= regStar) (pullStarRegister regStar)
+  when (regStar /= [""] && regStar /= [] && regStar /= regUnnamed && previousStar /= regStar) (pullStarRegister regStar)
 
 repaste ::
   NvimE e m =>
