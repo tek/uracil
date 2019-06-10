@@ -4,17 +4,18 @@ import Chiasma.Data.Ident (Ident, generateIdent, sameIdent)
 import qualified Control.Lens as Lens (element, filtered, firstOf, folded)
 import Data.List.NonEmpty (NonEmpty, nonEmpty)
 import Ribosome.Api.Register (setregAs)
-import Ribosome.Control.Monad.Ribo (prependUnique)
+import Ribosome.Control.Monad.Ribo (prependUniqueBy)
 import Ribosome.Data.Register (Register)
 import qualified Ribosome.Data.Register as Register (Register(Special, Empty))
 import Ribosome.Data.RegisterType (RegisterType)
 import Ribosome.Msgpack.Error (DecodeError)
-import Ribosome.Nvim.Api.IO (vimCallFunction, vimGetVvar)
+import Ribosome.Nvim.Api.IO (vimGetVvar)
 
 import Uracil.Data.Env (Env)
 import qualified Uracil.Data.Env as Env (paste, yanks)
 import Uracil.Data.RegEvent (RegEvent(RegEvent))
 import Uracil.Data.Yank (Yank(Yank))
+import qualified Uracil.Data.Yank as Yank (text)
 import Uracil.Data.YankError (YankError)
 import qualified Uracil.Data.YankError as YankError (YankError(EmptyHistory, NoSuchYank, EmptyEvent, InvalidYankIndex))
 
@@ -39,7 +40,7 @@ storeYank regtype register content = do
   ident <- generateIdent
   let yank = Yank ident register regtype text
   showDebug "yank" yank
-  prependUnique @Env Env.yanks yank
+  prependUniqueBy @Env Yank.text Env.yanks yank
 
 storeEvent ::
   MonadRibo m =>
