@@ -32,6 +32,15 @@ Plug 'tek/chromatin'
 Plug 'tek/uracil'
 ```
 
+# Recommended Mappings
+
+```vim
+nnoremap p <cmd>call UraPaste()<cr>
+xnoremap p <cmd>call UraPaste()<cr>
+nnoremap P <cmd>call UraPpaste()<cr>
+xnoremap P <cmd>call UraPpaste()<cr>
+```
+
 # Settings
 
 ## `g:uracil_paste_timeout`
@@ -58,8 +67,9 @@ Paste the most recently yanked text, basically like the regular `p` or using `p`
 Repeatedly calling this function cycles through the yank history, each time calling `undo` and pasting the next entry.
 A floating window containing the yank history is displayed at the cursor.
 
-After the time configured by [`g:uracil_paste_timeout`](#guracil-paste-timeout) has passed, the window is hidden and
-the currently pasted entry is reset, so that a subsequent paste starts from the top.
+After the time configured by [`g:uracil_paste_timeout`](#guracil-paste-timeout) has passed or the cursor was moved, the
+window is hidden and the currently pasted entry is reset, so that a subsequent paste starts from the top.
+The pasted history entry will be moved to the beginning of the list.
 
 **Note** that in order for this to work properly in visual mode, you will have to use the `<cmd>` pseudokey in the
 mapping:
@@ -69,6 +79,10 @@ xnoremap p <cmd>call UraPaste()<cr>
 ```
 
 Using `:` here would start command line mode, which would interfere with the visual mode detection in the plugin.
+
+## `UraPpaste`
+
+Identical to [`UraPaste`](#urapaste), but uses `P`.
 
 ## `UraDiag`
 
