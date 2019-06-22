@@ -12,6 +12,7 @@ extra-deps:
 - strings-1.1
 - pretty-terminal-0.1.0.0
 - posix-pty-0.2.1.1
+- fuzzy-0.1.0.0
 - github: neovimhaskell/nvim-hs
   commit: 6b276629c1db1b4af9a8d33a1d6fbaf1ed46fae8
 - github: tek/cornea
