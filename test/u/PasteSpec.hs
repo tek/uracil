@@ -19,7 +19,7 @@ import Unit
 import Uracil.Data.Env (Env, Uracil)
 import qualified Uracil.Data.Env as Env (yanks)
 import Uracil.Data.Yank (Yank(Yank))
-import Uracil.Paste (uraPaste)
+import Uracil.Paste (uraPaste, uraPpaste)
 import qualified Uracil.Settings as Settings (pasteTimeout)
 
 item1 :: NonEmpty Text
@@ -68,6 +68,24 @@ test_normalPaste :: IO ()
 test_normalPaste =
   tmuxSpecDef normalPasteSpec
 
+normalPpasteSpec :: Uracil ()
+normalPpasteSpec = do
+  clearStar
+  setL @Env Env.yanks yanks
+  uraPpaste
+  checkContent item1
+  gassertEqual 2 . length =<< vimGetWindows
+  uraPpaste
+  checkContent item2
+  await (gassertEqual 1 . length) vimGetWindows
+  where
+    checkContent item =
+      await (gassertEqual (NonEmpty.toList item ++ [""])) currentBufferContent
+
+test_normalPpaste :: IO ()
+test_normalPpaste =
+  tmuxSpecDef normalPpasteSpec
+
 visualPasteSpec :: Uracil ()
 visualPasteSpec = do
   clearStar
@@ -115,3 +133,7 @@ syncSelectionSpec = do
   where
     extra =
       "external" :: Text
+
+test_syncSelection :: IO ()
+test_syncSelection =
+  tmuxSpecDef syncSelectionSpec

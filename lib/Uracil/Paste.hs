@@ -5,6 +5,7 @@ module Uracil.Paste where
 import Chiasma.Data.Ident (Ident, generateIdent)
 import Control.Concurrent.Lifted (fork)
 import qualified Control.Lens as Lens (view)
+import Data.Composition ((.:))
 import Data.Hourglass (Elapsed(Elapsed), Seconds(Seconds))
 import Data.String.QM (qt)
 import qualified Data.Text as Text (isInfixOf)
@@ -206,13 +207,14 @@ updatePaste ::
   MonadDeepError e DecodeError m =>
   MonadDeepError e YankError m =>
   MonadDeepState s Env m =>
+  (Yank -> m ()) ->
   Int ->
   m ()
-updatePaste index = do
+updatePaste paster index = do
   visual <- visualModeActive
   yank <- yankByIndex index
   logUpdatePaste (show (index + 1)) visual (show yank)
-  paste yank
+  paster yank
   scratch <- ensureYankScratch
   updated <- now
   ident <- generateIdent
@@ -229,10 +231,11 @@ exclusiveUpdatePaste ::
   MonadDeepError e DecodeError m =>
   MonadDeepError e YankError m =>
   MonadDeepState s Env m =>
+  (Yank -> m ()) ->
   Int ->
   m ()
 exclusiveUpdatePaste =
-  lockOrWait "uracil-update-paste" . updatePaste
+  lockOrWait "uracil-update-paste" .: updatePaste
 
 pullRegister ::
   NvimE e m =>
@@ -271,9 +274,10 @@ repaste ::
   MonadDeepError e DecodeError m =>
   MonadDeepError e YankError m =>
   MonadDeepState s Env m =>
+  (Yank -> m ()) ->
   Paste ->
   m ()
-repaste (Paste _ index _ _ visual) = do
+repaste paster (Paste _ index _ _ visual) = do
   count <- length <$> getL @Env Env.yanks
   if count > 0
   then run count
@@ -282,7 +286,7 @@ repaste (Paste _ index _ _ visual) = do
     run count =
       undo *>
       reset *>
-      exclusiveUpdatePaste ((index + 1) `mod` count)
+      exclusiveUpdatePaste paster ((index + 1) `mod` count)
     reset =
       when visual $ normal "gv"
 
@@ -294,11 +298,25 @@ startPaste ::
   MonadDeepError e DecodeError m =>
   MonadDeepError e YankError m =>
   MonadDeepState s Env m =>
+  (Yank -> m ()) ->
   m ()
-startPaste =
+startPaste paster =
   killYankScratch *>
   syncClipboard *>
-  updatePaste 0
+  updatePaste paster 0
+
+pasteRequest ::
+  NvimE e m =>
+  MonadRibo m =>
+  MonadBaseControl IO m =>
+  MonadDeepError e SettingError m =>
+  MonadDeepError e DecodeError m =>
+  MonadDeepError e YankError m =>
+  MonadDeepState s Env m =>
+  (Yank -> m ()) ->
+  m ()
+pasteRequest paster =
+  maybe (startPaste paster) (repaste paster) =<< currentPaste
 
 uraPaste ::
   NvimE e m =>
@@ -310,7 +328,19 @@ uraPaste ::
   MonadDeepState s Env m =>
   m ()
 uraPaste =
-  maybe startPaste repaste =<< currentPaste
+  pasteRequest paste
+
+uraPpaste ::
+  NvimE e m =>
+  MonadRibo m =>
+  MonadBaseControl IO m =>
+  MonadDeepError e SettingError m =>
+  MonadDeepError e DecodeError m =>
+  MonadDeepError e YankError m =>
+  MonadDeepState s Env m =>
+  m ()
+uraPpaste =
+  pasteRequest ppaste
 
 uraStopPaste ::
   NvimE e m =>
