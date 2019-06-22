@@ -1,5 +1,6 @@
 module Config where
 
+import Prelude hiding (defaultTestConfig)
 import Ribosome.Data.Setting (Setting(Setting))
 import Ribosome.Msgpack.Encode (MsgpackEncode(..))
 import Ribosome.Test.Embed (TestConfig(tcVariables), Vars(..), varsFromList)

@@ -2,6 +2,7 @@ module Unit where
 
 import Chiasma.Native.Api (TmuxNative(TmuxNative))
 import Neovim.Plugin (Plugin)
+import Prelude hiding (defaultTestConfig, defaultTestConfigWith, integrationSpec)
 import Ribosome.Config.Setting (updateSetting)
 import Ribosome.Config.Settings (tmuxSocket)
 import Ribosome.Control.Ribosome (Ribosome, newRibosome)

@@ -4,6 +4,7 @@ module PasteSpec (htf_thisModulesTests) where
 
 import qualified Chiasma.Data.Ident as Ident (Ident(Str))
 import qualified Data.List.NonEmpty as NonEmpty (toList)
+import Prelude hiding (integrationSpecDef)
 import Ribosome.Api.Autocmd (doautocmd)
 import Ribosome.Api.Buffer (currentBufferContent, setCurrentBufferContent)
 import Ribosome.Api.Normal (normal)
@@ -115,7 +116,7 @@ cancelWhenCursorMovedSpec = do
   setL @Env Env.yanks yanks
   uraPaste
   gassertEqual 2 . length =<< vimGetWindows
-  doautocmd "CursorMoved"
+  doautocmd False "CursorMoved"
   await (gassertEqual 1 . length) vimGetWindows
 
 test_cancelWhenCursorMoved :: IO ()
