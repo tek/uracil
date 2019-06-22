@@ -5,34 +5,26 @@ module Uracil.Paste where
 import Chiasma.Data.Ident (Ident, generateIdent)
 import Control.Concurrent.Lifted (fork)
 import qualified Control.Lens as Lens (view)
-import Data.Foldable (maximum)
 import Data.Hourglass (Elapsed(Elapsed), Seconds(Seconds))
-import qualified Data.List.NonEmpty as NonEmpty (toList)
 import Data.String.QM (qt)
-import qualified Data.Text as Text (isInfixOf, length)
+import qualified Data.Text as Text (isInfixOf)
 import Ribosome.Api.Mode (visualModeActive)
 import Ribosome.Api.Normal (normal)
 import Ribosome.Api.Register (getregList, getregtype)
 import Ribosome.Api.Undo (undo)
-import Ribosome.Api.Window (redraw, setLine)
+import Ribosome.Api.Window (redraw)
 import Ribosome.Config.Setting (setting)
 import Ribosome.Control.Lock (lockOrWait)
-import qualified Ribosome.Data.FloatOptions as FloatOptions (FloatOptions(height, width))
 import Ribosome.Data.Register (Register, registerRepr)
 import qualified Ribosome.Data.Register as Register (Register(..))
-import Ribosome.Data.Scratch (Scratch(Scratch, scratchWindow))
-import Ribosome.Data.ScratchOptions (ScratchOptions, defaultScratchOptions, scratchFloat, scratchSyntax)
 import Ribosome.Data.SettingError (SettingError)
-import Ribosome.Data.Syntax (HiLink(HiLink), Syntax(Syntax), syntaxMatch)
 import Ribosome.Msgpack.Error (DecodeError)
-import Ribosome.Nvim.Api.IO (vimGetOption, windowSetOption)
-import Ribosome.Scratch (killScratchByName, showInScratch)
+import Ribosome.Nvim.Api.IO (vimGetOption)
 import System.Hourglass (timeCurrent)
 
 import Uracil.Data.Env (Env)
-import qualified Uracil.Data.Env as Env (paste, previousStar, yanks)
+import qualified Uracil.Data.Env as Env (paste, yanks)
 import Uracil.Data.Paste (Paste(Paste))
-import qualified Uracil.Data.Paste as Paste (scratch)
 import Uracil.Data.Yank (Yank)
 import qualified Uracil.Data.Yank as Yank (text)
 import Uracil.Data.YankError (YankError)
@@ -141,12 +133,34 @@ shouldCancelPaste timeout ident =
     check (Paste pasteIdent' _ updated _ _) =
       andM [pasteHasTimedOut timeout updated, pure $ ident == pasteIdent']
 
+moveYankToHistoryHead ::
+  MonadDeepState s Env m =>
+  Int ->
+  m ()
+moveYankToHistoryHead index =
+  modifyL @Env Env.yanks move
+  where
+    move ys =
+      take 1 post <> pre <> drop 1 post
+      where
+        (pre, post) = splitAt index ys
+
+movePastedToHistoryHead ::
+  MonadDeepState s Env m =>
+  m ()
+movePastedToHistoryHead =
+  traverse_ move =<< getL @Env Env.paste
+  where
+    move (Paste _ index _ _ _) =
+      moveYankToHistoryHead index
+
 cancelPaste ::
   NvimE e m =>
   MonadRibo m =>
   MonadDeepState s Env m =>
   m ()
 cancelPaste =
+  movePastedToHistoryHead *>
   setL @Env Env.paste Nothing *>
   killYankScratch
 
@@ -220,20 +234,17 @@ exclusiveUpdatePaste ::
 exclusiveUpdatePaste =
   lockOrWait "uracil-update-paste" . updatePaste
 
-pullStarRegister ::
+pullRegister ::
   NvimE e m =>
   MonadRibo m =>
   MonadDeepState s Env m =>
   MonadDeepError e YankError m =>
-  [Text] ->
+  Register ->
+  NonEmpty Text ->
   m ()
-pullStarRegister content = do
-  setL @Env Env.previousStar content
+pullRegister register content = do
   tpe <- getregtype register
   storeYank tpe register content
-  where
-    register =
-      Register.Special "*"
 
 syncClipboard ::
   NvimE e m =>
@@ -242,10 +253,15 @@ syncClipboard ::
   MonadDeepError e YankError m =>
   m ()
 syncClipboard = do
-  regStar <- getregList (Register.Special "*")
-  regUnnamed <- getregList (Register.Special "\"")
-  previousStar <- getL @Env Env.previousStar
-  when (regStar /= [""] && regStar /= [] && regStar /= regUnnamed && previousStar /= regStar) (pullStarRegister regStar)
+  currentYanks <- Lens.view Yank.text <$$> yanks
+  traverse_ (fetch currentYanks) [Register.Special "*", Register.Special "\""]
+  where
+    fetch ys reg =
+      traverse_ (check ys reg) =<< nonEmpty <$> getregList reg
+    check ys reg content =
+      when (freshYank ys content) (pullRegister reg content)
+    freshYank ys a =
+      a /= ("" :| []) && (a `notElem` ys)
 
 repaste ::
   NvimE e m =>

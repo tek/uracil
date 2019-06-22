@@ -1,7 +1,6 @@
 module Unit where
 
 import Chiasma.Native.Api (TmuxNative(TmuxNative))
-import Data.Default (def)
 import Neovim.Plugin (Plugin)
 import Ribosome.Config.Setting (updateSetting)
 import Ribosome.Config.Settings (tmuxSocket)

@@ -33,12 +33,11 @@ storeYank ::
   MonadDeepError e YankError m =>
   RegisterType ->
   Register ->
-  [Text] ->
+  NonEmpty Text ->
   m ()
 storeYank regtype register content = do
-  text <- hoistMaybe YankError.EmptyEvent (nonEmpty content)
   ident <- generateIdent
-  let yank = Yank ident register regtype text
+  let yank = Yank ident register regtype content
   showDebug "yank" yank
   prependUniqueBy @Env Yank.text Env.yanks yank
 
@@ -49,7 +48,7 @@ storeEvent ::
   RegEvent ->
   m ()
 storeEvent (RegEvent _ _ content register regtype) | validRegister register =
-  storeYank regtype register content
+  storeYank regtype register =<< hoistMaybe YankError.EmptyEvent (nonEmpty content)
 storeEvent _ =
   return ()
 

@@ -115,7 +115,3 @@ syncSelectionSpec = do
   where
     extra =
       "external" :: Text
-
-test_syncSelection :: IO ()
-test_syncSelection =
-  tmuxSpecDef syncSelectionSpec
