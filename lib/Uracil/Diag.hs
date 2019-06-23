@@ -62,10 +62,11 @@ diagnosticsData = do
     headline = "# Diagnostics"
 
 uraDiag ::
+  NvimE e m =>
   MonadRibo m =>
+  MonadBaseControl IO m =>
   MonadDeepState s Env m =>
   MonadDeepError e DecodeError m =>
-  NvimE e m =>
   m ()
 uraDiag = do
   content <- diagnosticsData

@@ -106,6 +106,7 @@ yankScratchOptions lines' =
 showYankScratch ::
   NvimE e m =>
   MonadRibo m =>
+  MonadBaseControl IO m =>
   MonadDeepError e DecodeError m =>
   MonadDeepError e YankError m =>
   MonadDeepState s Env m =>
@@ -129,6 +130,7 @@ selectYankInScratch (Scratch _ _ window _ _) line =
 ensureYankScratch ::
   NvimE e m =>
   MonadRibo m =>
+  MonadBaseControl IO m =>
   MonadDeepError e DecodeError m =>
   MonadDeepError e YankError m =>
   MonadDeepState s Env m =>
