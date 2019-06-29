@@ -10,7 +10,7 @@ import Data.Hourglass (Elapsed(Elapsed), Seconds(Seconds))
 import Data.String.QM (qt)
 import qualified Data.Text as Text (isInfixOf)
 import Ribosome.Api.Mode (visualModeActive)
-import Ribosome.Api.Normal (normal)
+import Ribosome.Api.Normal (noautocmdNormal, normal)
 import Ribosome.Api.Register (getregList, getregtype)
 import Ribosome.Api.Undo (undo)
 import Ribosome.Api.Window (redraw)
@@ -56,7 +56,7 @@ pasteWith ::
 pasteWith cmd yank = do
   register <- defaultRegister
   loadYank register yank
-  normal (registerRepr register <> cmd)
+  noautocmdNormal (registerRepr register <> cmd)
 
 paste ::
   MonadRibo m =>
