@@ -56,7 +56,7 @@ pasteWith ::
 pasteWith cmd yank = do
   register <- defaultRegister
   loadYank register yank
-  noautocmdNormal (registerRepr register <> cmd)
+  ignoreError @RpcError $ noautocmdNormal (registerRepr register <> cmd)
 
 paste ::
   MonadRibo m =>
