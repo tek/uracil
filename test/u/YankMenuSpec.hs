@@ -4,10 +4,9 @@ module YankMenuSpec (htf_thisModulesTests) where
 
 import qualified Chiasma.Data.Ident as Ident (Ident(Str))
 import qualified Data.List.NonEmpty as NonEmpty (toList)
-import qualified Data.Text as Text (unlines)
 import Ribosome.Api.Buffer (currentBufferContent, setCurrentBufferContent)
+import Ribosome.Api.Register (getreg, unnamedRegister)
 import Ribosome.Api.Window (setCurrentLine)
-import Ribosome.Nvim.Api.IO (vimCallFunction)
 import Ribosome.Test.Input (withInput)
 import Test.Framework
 
@@ -50,7 +49,7 @@ yankChars =
 yankMenuYankSpec :: Uracil ()
 yankMenuYankSpec = do
   yankMenuSpec yankChars
-  gassertEqual (Text.unlines (NonEmpty.toList targetItem)) =<< vimCallFunction "getreg" [toMsgpack ("\"" :: Text)]
+  gassertEqual (Left (NonEmpty.toList targetItem)) =<< getreg unnamedRegister
 
 test_yankMenuYank :: IO ()
 test_yankMenuYank =

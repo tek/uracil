@@ -8,7 +8,7 @@ import Prelude hiding (integrationSpecDef)
 import Ribosome.Api.Autocmd (doautocmd)
 import Ribosome.Api.Buffer (currentBufferContent, setCurrentBufferContent)
 import Ribosome.Api.Normal (normal)
-import Ribosome.Api.Register (setregLine, starRegister)
+import Ribosome.Api.Register (getreg, setregLine, starRegister, unnamedRegister)
 import Ribosome.Api.Window (setCurrentCursor, setCurrentLine)
 import Ribosome.Config.Setting (updateSetting)
 import Ribosome.Nvim.Api.IO (vimGetWindows, vimSetOption)
@@ -102,6 +102,7 @@ visualPasteSpec = do
   checkContent item3
   uraPaste
   checkContent item1
+  gassertEqual (Left (NonEmpty.toList item1)) =<< getreg unnamedRegister
   where
     checkContent item =
       await (gassertEqual ("line1" : "word " : NonEmpty.toList item ++ [" word"])) currentBufferContent
