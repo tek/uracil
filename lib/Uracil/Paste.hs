@@ -11,7 +11,7 @@ import Data.String.QM (qt)
 import qualified Data.Text as Text (isInfixOf)
 import Ribosome.Api.Mode (visualModeActive)
 import Ribosome.Api.Normal (noautocmdNormal, normal)
-import Ribosome.Api.Register (getregList, getregtype)
+import Ribosome.Api.Register (getregList, getregtype, unnamedRegister)
 import Ribosome.Api.Undo (undo)
 import Ribosome.Api.Window (redraw)
 import Ribosome.Config.Setting (setting)
@@ -55,6 +55,7 @@ pasteWith ::
   m ()
 pasteWith cmd yank = do
   register <- defaultRegister
+  loadYank unnamedRegister yank
   loadYank register yank
   ignoreError @RpcError $ noautocmdNormal (registerRepr register <> cmd)
 
