@@ -16,11 +16,11 @@ extra-deps:
 - github: neovimhaskell/nvim-hs
   commit: 6b276629c1db1b4af9a8d33a1d6fbaf1ed46fae8
 - github: tek/cornea
-  commit: fe735cb878e43ea2a257346f4f228cd04fa77b4c
+  commit: b9779ec75102c495dad269fa43997d9337c82d0a
 - github: tek/chiasma
-  commit: 3f224bb9cac08e0ca6b7a2bc75ba7a36b954b668
+  commit: 107f46f68fdf0065a45e187eed4f0aced11fc7cf
 - github: tek/ribosome
-  commit: b7088cf2329417b0e04e3888c0d290e0ef387abc
+  commit: aa19be5f218f763c8d0325387134004bc626f292
   subdirs:
   - modules/core
   - modules/test
