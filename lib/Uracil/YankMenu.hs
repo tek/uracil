@@ -4,6 +4,7 @@ import Chiasma.Data.Ident (Ident)
 import qualified Control.Lens as Lens (view)
 import qualified Data.Map.Strict as Map (fromList)
 import qualified Data.Text as Text (length, take)
+import Ribosome.Menu.Action (menuQuitWith, menuQuitWith)
 import Ribosome.Menu.Data.Menu (Menu)
 import Ribosome.Menu.Data.MenuConsumerAction (MenuConsumerAction)
 import Ribosome.Menu.Data.MenuItem (MenuItem(MenuItem))
@@ -14,9 +15,8 @@ import Ribosome.Menu.Prompt.Nvim (getCharC, nvimPromptRenderer)
 import Ribosome.Menu.Prompt.Run (basicTransition)
 import Ribosome.Menu.Run (strictNvimMenu)
 import Ribosome.Menu.Simple (MappingHandler, Mappings, defaultMenu, selectedMenuItem)
-import Ribosome.Menu.Action (menuQuitWith, menuQuitWith)
 import Ribosome.Msgpack.Error (DecodeError)
-import Ribosome.Nvim.Api.IO (vimGetCurrentWindow, windowGetHeight)
+import Ribosome.Nvim.Api.IO (vimGetCurrentWindow, windowGetWidth)
 
 import Uracil.Data.Env (Env)
 import Uracil.Data.Yank (Yank(Yank))
@@ -100,7 +100,7 @@ uraYankMenu ::
   MonadDeepError e DecodeError m =>
   m ()
 uraYankMenu = do
-  width <- windowGetHeight =<< vimGetCurrentWindow
+  width <- windowGetWidth =<< vimGetCurrentWindow
   void $ run =<< yankMenuItems width <$> yanks
   where
     run [] =
