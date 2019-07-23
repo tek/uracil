@@ -29,16 +29,9 @@ spec :: Env -> Uracil () -> IO ()
 spec =
   specConfig defaultTestConfig
 
-withTempDir :: Env -> (Env -> IO ()) -> IO ()
-withTempDir env thunk =
-  thunk env
-
 specWith :: Env -> Uracil () -> Vars -> IO ()
 specWith env thunk vars =
-  withTempDir env run
-  where
-    run env' =
-      unitSpec (defaultTestConfigWith vars) env' thunk
+  unitSpec (defaultTestConfigWith vars) env thunk
 
 specWithDef :: Uracil () -> Vars -> IO ()
 specWithDef =
@@ -55,18 +48,12 @@ withTmux thunk (TmuxNative (Just socket)) = do
 withTmux _ _ = fail "no socket in test tmux"
 
 tmuxSpec :: (TestConfig -> TestConfig) -> Uracil () -> IO ()
-tmuxSpec reconf thunk =
-  withTempDir def run
-  where
-    run env =
-      Ribosome.tmuxSpec (testConf reconf) env thunk
+tmuxSpec reconf =
+  Ribosome.tmuxSpec (testConf reconf) def
 
 tmuxGuiSpec :: (TestConfig -> TestConfig) -> Uracil () -> IO ()
-tmuxGuiSpec reconf thunk =
-  withTempDir def run
-  where
-    run env =
-      Ribosome.tmuxGuiSpec (testConf reconf) env thunk
+tmuxGuiSpec reconf =
+  Ribosome.tmuxGuiSpec (testConf reconf) def
 
 tmuxSpecDef :: Uracil () -> IO ()
 tmuxSpecDef =

@@ -1,13 +1,14 @@
 module Uracil.YankMenu where
 
 import Chiasma.Data.Ident (Ident)
-import qualified Control.Lens as Lens (view)
+import Control.Lens (view)
+import Control.Monad.Trans.Resource (MonadResource)
 import qualified Data.Map.Strict as Map (fromList)
 import qualified Data.Text as Text (length, take)
 import Ribosome.Menu.Action (menuQuitWith, menuQuitWith)
 import Ribosome.Menu.Data.Menu (Menu)
 import Ribosome.Menu.Data.MenuConsumerAction (MenuConsumerAction)
-import Ribosome.Menu.Data.MenuItem (MenuItem(MenuItem))
+import Ribosome.Menu.Data.MenuItem (MenuItem, simpleMenuItem)
 import qualified Ribosome.Menu.Data.MenuItem as MenuItem (meta)
 import Ribosome.Menu.Prompt.Data.Prompt (Prompt)
 import Ribosome.Menu.Prompt.Data.PromptConfig (PromptConfig(PromptConfig))
@@ -34,7 +35,7 @@ menuAction ::
   Prompt ->
   m (MenuConsumerAction m (), Menu Ident)
 menuAction action m _ = do
-  ident <- Lens.view MenuItem.meta <$> hoistMaybe YankError.InvalidMenuIndex item
+  ident <- view MenuItem.meta <$> hoistMaybe YankError.InvalidMenuIndex item
   menuQuitWith (action ident) m
   where
     item =
@@ -72,7 +73,7 @@ yankMenuItems width yanks' =
   uncurry menuItem <$> zip yanks' [(0 :: Int)..]
   where
     menuItem (Yank ident _ _ (line' :| rest)) _ =
-      MenuItem ident (Text.take maxlen line' <> dots line' <> count rest)
+      simpleMenuItem ident (Text.take maxlen line' <> dots line' <> count rest)
     dots line' =
       if Text.length line' > maxlen then "..." else ""
     count [] =
@@ -94,6 +95,7 @@ yankMenuMappings =
 uraYankMenu ::
   NvimE e m =>
   MonadRibo m =>
+  MonadResource m =>
   MonadBaseControl IO m =>
   MonadDeepState s Env m =>
   MonadDeepError e YankError m =>
@@ -110,4 +112,4 @@ uraYankMenu = do
     handler =
       defaultMenu yankMenuMappings
     promptConfig =
-      PromptConfig (getCharC 0.033) basicTransition nvimPromptRenderer False
+      PromptConfig (getCharC 0.033) basicTransition nvimPromptRenderer []
