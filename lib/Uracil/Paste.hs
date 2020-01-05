@@ -257,8 +257,8 @@ syncClipboard ::
   MonadDeepError e YankError m =>
   m ()
 syncClipboard = do
-  currentYanks <- Lens.view Yank.text <$$> yanks
-  traverse_ (fetch currentYanks) [Register.Special "*", Register.Special "\""]
+  lastTwoYanks <- take 2 <$> Lens.view Yank.text <$$> yanks
+  traverse_ (fetch lastTwoYanks) [Register.Special "*", Register.Special "\""]
   where
     fetch ys reg =
       traverse_ (check ys reg) =<< nonEmpty <$> getregList reg
