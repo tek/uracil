@@ -15,7 +15,7 @@ import Ribosome.Api.Register (getregList, getregtype, unnamedRegister)
 import Ribosome.Api.Undo (undo)
 import Ribosome.Api.Window (redraw)
 import Ribosome.Config.Setting (setting)
-import Ribosome.Control.Lock (lockOrWait)
+import Ribosome.Control.Lock (lockOrSkip, lockOrWait)
 import Ribosome.Data.Register (Register, registerRepr)
 import qualified Ribosome.Data.Register as Register (Register(..))
 import Ribosome.Data.SettingError (SettingError)
@@ -224,20 +224,6 @@ updatePaste paster index = do
   redraw
   void $ fork (waitAndCancelPaste ident)
 
-exclusiveUpdatePaste ::
-  NvimE e m =>
-  MonadRibo m =>
-  MonadBaseControl IO m =>
-  MonadDeepError e SettingError m =>
-  MonadDeepError e DecodeError m =>
-  MonadDeepError e YankError m =>
-  MonadDeepState s Env m =>
-  (Yank -> m ()) ->
-  Int ->
-  m ()
-exclusiveUpdatePaste =
-  lockOrWait "uracil-update-paste" .: updatePaste
-
 pullRegister ::
   NvimE e m =>
   MonadRibo m =>
@@ -287,7 +273,7 @@ repaste paster (Paste _ index _ _ visual) = do
     run count =
       undo *>
       reset *>
-      exclusiveUpdatePaste paster ((index + 1) `mod` count)
+      updatePaste paster ((index + 1) `mod` count)
     reset =
       when visual $ normal "gv"
 
@@ -306,6 +292,10 @@ startPaste paster =
   syncClipboard *>
   updatePaste paster 0
 
+lockName :: Text
+lockName =
+  "uracil-paste"
+
 pasteRequest ::
   NvimE e m =>
   MonadRibo m =>
@@ -317,6 +307,7 @@ pasteRequest ::
   (Yank -> m ()) ->
   m ()
 pasteRequest paster =
+  lockOrWait lockName $
   maybe (startPaste paster) (repaste paster) =<< currentPaste
 
 uraPaste ::
@@ -353,4 +344,4 @@ uraStopPaste ::
   MonadDeepState s Env m =>
   m ()
 uraStopPaste =
-  whenM pasteActive cancelPaste
+  lockOrSkip lockName $ whenM pasteActive cancelPaste

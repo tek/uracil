@@ -8,8 +8,8 @@ import qualified Data.List.NonEmpty as NonEmpty (toList)
 import qualified Data.Map.Strict as Map (fromList)
 import Data.String.QM (qt)
 import qualified Data.Text as Text (length)
-import Ribosome.Api.Window (setLine)
-import qualified Ribosome.Data.FloatOptions as FloatOptions (FloatOptions(height, width))
+import Ribosome.Api.Window (currentCursor, setLine)
+import qualified Ribosome.Data.FloatOptions as FloatOptions
 import Ribosome.Data.Scratch (Scratch(Scratch, scratchWindow))
 import Ribosome.Data.ScratchOptions (ScratchOptions, defaultScratchOptions, scratchFloat)
 import Ribosome.Msgpack.Error (DecodeError)
@@ -92,12 +92,18 @@ moveSign ::
 moveSign line =
   unplaceSign *> placeSign line
 
-yankScratchOptions :: NonEmpty Text -> ScratchOptions
-yankScratchOptions lines' =
+yankScratchOptions :: NonEmpty Text -> Int -> Int -> ScratchOptions
+yankScratchOptions lines' row col =
   scratchFloat float . defaultScratchOptions $ yankScratchName
   where
     float =
-      def { FloatOptions.width = width, FloatOptions.height = height }
+      def {
+        FloatOptions.relative = FloatOptions.Win,
+        FloatOptions.width = width,
+        FloatOptions.height = height,
+        FloatOptions.row = row + 1,
+        FloatOptions.col = 1
+      }
     width =
       min 40 (maximum (Text.length <$> lines')) + 5
     height =
@@ -112,8 +118,10 @@ showYankScratch ::
   MonadDeepState s Env m =>
   m Scratch
 showYankScratch = do
+  logDebug ("showYankScratch" :: Text)
   lines' <- yankLines
-  scratch <- showInScratch (NonEmpty.toList lines') (yankScratchOptions lines')
+  (row, col) <- currentCursor
+  scratch <- showInScratch (NonEmpty.toList lines') (yankScratchOptions lines' row col)
   windowSetOption (scratchWindow scratch) "cursorline" (toMsgpack False)
   windowSetOption (scratchWindow scratch) "signcolumn" (toMsgpack ("no" :: Text))
   defineSign

@@ -15,13 +15,13 @@ extra-deps:
 - fuzzy-0.1.0.0
 - messagepack-0.5.4
 - github: neovimhaskell/nvim-hs
-  commit: 6b276629c1db1b4af9a8d33a1d6fbaf1ed46fae8
+  commit: 6eb110f11a3875da1be9415515014d574834391b
 - github: tek/cornea
   commit: 43c649fa064fd5c90047a76829f353c51b3cde0a
 - github: tek/chiasma
   commit: 25578d92b19beba962f8e163805a42da94715a8e
 - github: tek/ribosome
-  commit: 758a98e37a983e519bf6d6f0865d71741ec83ed9
+  commit: a5f03a7d00e002bae2a5eaf6df2ec07698fae6e7
   subdirs:
   - modules/core
   - modules/test
