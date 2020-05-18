@@ -18,11 +18,12 @@ data Env =
     _yanks :: [Yank],
     _deletes :: [Yank],
     _paste :: Maybe Paste,
-    _previousStar :: [Text]
+    _previousStar :: [Text],
+    _skip :: Maybe (NonEmpty Text)
   }
   deriving Show
 
 deepLenses ''Env
 
 instance Default Env where
-  def = Env def def def def
+  def = Env def def def def def

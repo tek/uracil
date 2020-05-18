@@ -5,7 +5,6 @@ module Uracil.Paste where
 import Chiasma.Data.Ident (Ident, generateIdent)
 import Control.Concurrent.Lifted (fork)
 import qualified Control.Lens as Lens (view)
-import Data.Composition ((.:))
 import Data.Hourglass (Elapsed(Elapsed), Seconds(Seconds))
 import Data.String.QM (qt)
 import qualified Data.Text as Text (isInfixOf)
@@ -24,7 +23,7 @@ import Ribosome.Nvim.Api.IO (vimGetOption)
 import System.Hourglass (timeCurrent)
 
 import Uracil.Data.Env (Env)
-import qualified Uracil.Data.Env as Env (paste, yanks)
+import qualified Uracil.Data.Env as Env
 import Uracil.Data.Paste (Paste(Paste))
 import Uracil.Data.Yank (Yank)
 import qualified Uracil.Data.Yank as Yank (text)
@@ -236,6 +235,23 @@ pullRegister register content = do
   tpe <- getregtype register
   storeYank tpe register content
 
+fetchClipboard ::
+  NvimE e m =>
+  MonadRibo m =>
+  MonadDeepState s Env m =>
+  MonadDeepError e YankError m =>
+  [NonEmpty Text] ->
+  Maybe (NonEmpty Text) ->
+  Register ->
+  m ()
+fetchClipboard lastTwoYanks skip reg =
+  traverse_ check =<< nonEmpty <$> getregList reg
+  where
+    check content =
+      when (freshYank content) (pullRegister reg content)
+    freshYank a =
+      a /= ("" :| []) && (a `notElem` lastTwoYanks) && (a `notElem` skip)
+
 syncClipboard ::
   NvimE e m =>
   MonadRibo m =>
@@ -244,14 +260,9 @@ syncClipboard ::
   m ()
 syncClipboard = do
   lastTwoYanks <- take 2 <$> Lens.view Yank.text <$$> yanks
-  traverse_ (fetch lastTwoYanks) [Register.Special "*", Register.Special "\""]
-  where
-    fetch ys reg =
-      traverse_ (check ys reg) =<< nonEmpty <$> getregList reg
-    check ys reg content =
-      when (freshYank ys content) (pullRegister reg content)
-    freshYank ys a =
-      a /= ("" :| []) && (a `notElem` ys)
+  skip <- getL @Env Env.skip
+  setL @Env Env.skip Nothing
+  traverse_ (fetchClipboard lastTwoYanks skip) [Register.Special "*", Register.Special "\""]
 
 repaste ::
   NvimE e m =>

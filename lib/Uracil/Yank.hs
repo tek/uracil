@@ -4,6 +4,7 @@ import Chiasma.Data.Ident (Ident, generateIdent, sameIdent)
 import qualified Control.Lens as Lens (element, filtered, firstOf, folded)
 import Data.List.NonEmpty (NonEmpty, nonEmpty)
 import Ribosome.Api.Register (setregAs)
+import Ribosome.Config.Setting (settingOr, updateSetting)
 import Ribosome.Control.Monad.Ribo (prependUniqueBy)
 import Ribosome.Data.Register (Register)
 import qualified Ribosome.Data.Register as Register (Register(Special, Empty))
@@ -12,12 +13,13 @@ import Ribosome.Msgpack.Error (DecodeError)
 import Ribosome.Nvim.Api.IO (vimGetVvar)
 
 import Uracil.Data.Env (Env)
-import qualified Uracil.Data.Env as Env (paste, yanks)
+import qualified Uracil.Data.Env as Env
 import Uracil.Data.RegEvent (RegEvent(RegEvent))
 import Uracil.Data.Yank (Yank(Yank))
 import qualified Uracil.Data.Yank as Yank (text)
 import Uracil.Data.YankError (YankError)
 import qualified Uracil.Data.YankError as YankError (YankError(EmptyHistory, NoSuchYank, EmptyEvent, InvalidYankIndex))
+import qualified Uracil.Settings as Settings
 
 validRegister :: Register -> Bool
 validRegister (Register.Special _) =
@@ -41,13 +43,25 @@ storeYank regtype register content = do
   showDebug "yank" yank
   prependUniqueBy @Env Yank.text Env.yanks yank
 
+skipEvent ::
+  NvimE e m =>
+  MonadRibo m =>
+  MonadDeepState s Env m =>
+  [Text] ->
+  m ()
+skipEvent content = do
+  setL @Env Env.skip (nonEmpty content)
+  updateSetting Settings.skipYank False
+
 storeEvent ::
+  NvimE e m =>
   MonadRibo m =>
   MonadDeepState s Env m =>
   MonadDeepError e YankError m =>
   RegEvent ->
   m ()
 storeEvent (RegEvent _ _ content register regtype) | validRegister register =
+  ifM (settingOr False Settings.skipYank) (skipEvent content) $
   storeYank regtype register =<< hoistMaybe YankError.EmptyEvent (nonEmpty content)
 storeEvent _ =
   return ()

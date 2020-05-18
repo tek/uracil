@@ -102,7 +102,7 @@ yankScratchOptions lines' row col =
         FloatOptions.width = width,
         FloatOptions.height = height,
         FloatOptions.row = row + 1,
-        FloatOptions.col = 1
+        FloatOptions.col = col
       }
     width =
       min 40 (maximum (Text.length <$> lines')) + 5
@@ -118,7 +118,6 @@ showYankScratch ::
   MonadDeepState s Env m =>
   m Scratch
 showYankScratch = do
-  logDebug ("showYankScratch" :: Text)
   lines' <- yankLines
   (row, col) <- currentCursor
   scratch <- showInScratch (NonEmpty.toList lines') (yankScratchOptions lines' row col)

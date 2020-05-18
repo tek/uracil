@@ -48,6 +48,14 @@ xnoremap P <cmd>call UraPpaste()<cr>
 The time in seconds after which the current [paste](#urapaste) is terminated.
 Default is `1`.
 
+## `g:uracil_skip_yank`
+
+Some commands from other plugins might use the unnamed register to store
+temporary data, causing the next paste to contain that data.
+Setting this variable to `1` before running that command, for example from
+withing a wrapper function for a mapping, will cause that yank to be ignored.
+After the yank, the variable will be reset to `0`.
+
 # Commands
 
 ## `UraYankMenu`
