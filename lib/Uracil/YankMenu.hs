@@ -25,7 +25,7 @@ import Uracil.Data.YankError (YankError)
 import qualified Uracil.Data.YankError as YankError (YankError(EmptyHistory, InvalidMenuIndex))
 import Uracil.Data.YankOperator (YankOperator)
 import Uracil.Paste (pasteIdent, ppasteIdent)
-import Uracil.Yank (loadYankIdent, yanks, yanksFor)
+import Uracil.Yank (loadYankIdent, yanksFor)
 
 menuAction ::
   NvimE e m =>

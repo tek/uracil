@@ -89,37 +89,37 @@ packages:
   original:
     url: https://github.com/tek/chiasma/archive/25578d92b19beba962f8e163805a42da94715a8e.tar.gz
 - completed:
-    size: 74901
+    size: 74915
     subdir: modules/core
-    url: https://github.com/tek/ribosome/archive/a5f03a7d00e002bae2a5eaf6df2ec07698fae6e7.tar.gz
+    url: https://github.com/tek/ribosome/archive/db06efdaf6eb76dab6a1ff61194f7b73c94f6b1d.tar.gz
     cabal-file:
       size: 6215
       sha256: 3d69476eb3229b1f1258d21ebcd04ec4dedeaa41d2e269184e4e1ba5bc7bc942
     name: ribosome
     version: 0.3.0.1
-    sha256: a6d924c4d7f037ab30e0cb0bd607d3a5737163fd892677140e1fd14dcc9ee618
+    sha256: b60f2f4c2c456be010a6dc0a2b4eb102cd7a4ee62e221e85b9edc304c6039d58
     pantry-tree:
       size: 8431
-      sha256: 1a5546ba7b8b4c8221e3e44689a471522811b0311e4dd1cc3af6c42c3d1a62fa
+      sha256: bb0964fcf5bfdd889e20391c6290a731fde9af3ba0846bf611f230685bb30dcf
   original:
     subdir: modules/core
-    url: https://github.com/tek/ribosome/archive/a5f03a7d00e002bae2a5eaf6df2ec07698fae6e7.tar.gz
+    url: https://github.com/tek/ribosome/archive/db06efdaf6eb76dab6a1ff61194f7b73c94f6b1d.tar.gz
 - completed:
-    size: 74901
+    size: 74915
     subdir: modules/test
-    url: https://github.com/tek/ribosome/archive/a5f03a7d00e002bae2a5eaf6df2ec07698fae6e7.tar.gz
+    url: https://github.com/tek/ribosome/archive/db06efdaf6eb76dab6a1ff61194f7b73c94f6b1d.tar.gz
     cabal-file:
       size: 2373
       sha256: 41f5bb0defad9abb96ed7d46235478b47893115abfac43ef85f5961bb1f06c51
     name: ribosome-test
     version: 0.3.0.1
-    sha256: a6d924c4d7f037ab30e0cb0bd607d3a5737163fd892677140e1fd14dcc9ee618
+    sha256: b60f2f4c2c456be010a6dc0a2b4eb102cd7a4ee62e221e85b9edc304c6039d58
     pantry-tree:
       size: 972
       sha256: c5ce2bcfd53176d1c1bfa4938008adfd2c821e3a107849cca27870079f54d84b
   original:
     subdir: modules/test
-    url: https://github.com/tek/ribosome/archive/a5f03a7d00e002bae2a5eaf6df2ec07698fae6e7.tar.gz
+    url: https://github.com/tek/ribosome/archive/db06efdaf6eb76dab6a1ff61194f7b73c94f6b1d.tar.gz
 snapshots:
 - completed:
     size: 500539

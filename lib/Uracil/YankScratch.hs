@@ -101,8 +101,7 @@ yankScratchOptions lines' row col =
         FloatOptions.relative = FloatOptions.Win,
         FloatOptions.width = width,
         FloatOptions.height = height,
-        FloatOptions.row = row + 1,
-        FloatOptions.col = col
+        FloatOptions.bufpos = Just (row, col)
       }
     width =
       min 40 (maximum (Text.length <$> lines')) + 5
