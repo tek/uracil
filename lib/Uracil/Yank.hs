@@ -10,6 +10,7 @@ import Ribosome.Control.Monad.Ribo (prependUniqueBy)
 import Ribosome.Data.Register (Register)
 import qualified Ribosome.Data.Register as Register (Register(Special, Empty))
 import Ribosome.Data.RegisterType (RegisterType)
+import qualified Ribosome.Data.RegisterType as RegisterType
 import Ribosome.Msgpack.Error (DecodeError)
 import Ribosome.Nvim.Api.IO (vimGetVvar)
 
@@ -132,8 +133,13 @@ yankByIdent ident =
 matchOperator :: Maybe YankOperator -> Yank -> Bool
 matchOperator Nothing _ =
   True
-matchOperator (Just (YankOperator ops)) (Yank _ _ _ (YankOperator op) _) =
-  op `Text.isInfixOf` ops
+matchOperator (Just (YankOperator ops)) (Yank _ _ regtype (YankOperator op) _) =
+  effective `Text.isInfixOf` ops
+  where
+    effective =
+      if op == "d" && regtype == RegisterType.Character
+      then "x"
+      else op
 
 yankByIndex ::
   MonadDeepState s Env m =>

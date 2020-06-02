@@ -1,19 +1,22 @@
 # Intro
 
-**uracil** is a [Neovim] plugin written in [Haskell] and powered by [ribosome] and [nvim-hs].
+**uracil** is a [Neovim] plugin written in [Haskell] and powered by [ribosome]
+and [nvim-hs].
 
 It provides comfortable access to registers for yanking and pasting.
-The plugin consumes yank autocmd event data and provides several lists of snippets to the user.
+The plugin consumes yank autocmd event data and provides several lists of
+snippets to the user.
 
 # Install
 
 There are two alternative methods for integrating this plugin into your Neovim.
-In both cases, the plugin will bootstrap your machine with [stack] and install itself on startup, as well as rebuild
-when the repository is updated.
+In both cases, the plugin will bootstrap your machine with [stack] and install
+itself on startup, as well as rebuild when the repository is updated.
 
 ## nvim-hs
 
-The basic variant is to use the built-in package management facility of the rplugin provider.
+The basic variant is to use the built-in package management facility of the
+rplugin provider.
 In this case, you have to include [nvim-hs.vim]:
 
 ```vim
@@ -23,9 +26,10 @@ Plug 'tek/uracil'
 
 ## chromatin
 
-The author maintains a manager for [ribosome]-based plugins called [chromatin] that has additional features.
-You will be presented with a terminal buffer containing the output of the installation routines whenever something is
-built.
+The author maintains a manager for [ribosome]-based plugins called [chromatin]
+that has additional features.
+You will be presented with a terminal buffer containing the output of the
+installation routines whenever something is built.
 
 ```vim
 Plug 'tek/chromatin'
@@ -69,49 +73,60 @@ For example, to start a paste session only for deleted and changed text:
 UraPasteFor dc
 ```
 
+Possible operators are `d`, `c`, `y` and `x`.
+`x` is technically not an operator but `d` with the register type `character`,
+but for convenience it is converted for the check.
+
 ## `UraYankMenu`
 
 Displays an interactive scratch buffer with the current yank history.
 Several actions can be performed through mappings:
 
-* `p` insert the yank after the cursor position. Whether the paste is line-wise or character-wise depends on how it was
-  yanked.
+* `p` insert the yank after the cursor position. Whether the paste is line-wise
+  or character-wise depends on how it was yanked.
 * `P` insert the yank before the cursor position.
 * `y` load the yank into to `"` register.
 
 ### `UraYankMenuFor`
 
-Same as `UraYankMenu`, but takes one argument that specifies the [operator filter][#operator-filters].
+Same as `UraYankMenu`, but takes one argument that specifies the
+[operator filter][#operator-filters].
 
 ## `UraPaste`
 
-Paste the most recently yanked text, basically like the regular `p` or using `p` in the yank menu.
+Paste the most recently yanked text, basically like the regular `p` or using
+`p` in the yank menu.
 
-Repeatedly calling this function cycles through the yank history, each time calling `undo` and pasting the next entry.
-A floating window containing the yank history is displayed at the cursor.
+Repeatedly calling this function cycles through the yank history, each time
+calling `undo` and pasting the next entry. A floating window containing the
+yank history is displayed at the cursor.
 
-After the time configured by [`g:uracil_paste_timeout`](#guracil-paste-timeout) has passed or the cursor was moved, the
-window is hidden and the currently pasted entry is reset, so that a subsequent paste starts from the top.
+After the time configured by [`g:uracil_paste_timeout`](#guracil-paste-timeout)
+has passed or the cursor was moved, the window is hidden and the currently
+pasted entry is reset, so that a subsequent paste starts from the top.
 The pasted history entry will be moved to the beginning of the list.
 
-**Note** that in order for this to work properly in visual mode, you will have to use the `<cmd>` pseudokey in the
-mapping:
+**Note** that in order for this to work properly in visual mode, you will have
+to use the `<cmd>` pseudokey in the mapping:
 
 ```vim
 xnoremap p <cmd>call UraPaste()<cr>
 ```
 
-Using `:` here would start command line mode, which would interfere with the visual mode detection in the plugin.
+Using `:` here would start command line mode, which would interfere with the
+visual mode detection in the plugin.
 
 ### `UraPasteFor`
 
-Same as `UraPaste`, but takes one argument that specifies the [operator filter][#operator-filters].
+Same as `UraPaste`, but takes one argument that specifies the
+[operator filter][#operator-filters].
 
 ## `UraPpaste`
 
 Identical to [`UraPaste`](#urapaste), but uses `P`.
 
-Same as `UraPpaste`, but takes one argument that specifies the [operator filter][#operator-filters].
+Same as `UraPpaste`, but takes one argument that specifies the
+[operator filter][#operator-filters].
 
 ## `UraDiag`
 
