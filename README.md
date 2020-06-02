@@ -58,6 +58,17 @@ After the yank, the variable will be reset to `0`.
 
 # Commands
 
+## Operator Filters
+
+Some commands have alternative forms that take an argument that is used to
+filter the yanks by which operator was used for the triggering commands.
+
+For example, to start a paste session only for deleted and changed text:
+
+```vim
+UraPasteFor dc
+```
+
 ## `UraYankMenu`
 
 Displays an interactive scratch buffer with the current yank history.
@@ -67,6 +78,10 @@ Several actions can be performed through mappings:
   yanked.
 * `P` insert the yank before the cursor position.
 * `y` load the yank into to `"` register.
+
+### `UraYankMenuFor`
+
+Same as `UraYankMenu`, but takes one argument that specifies the [operator filter][#operator-filters].
 
 ## `UraPaste`
 
@@ -88,9 +103,15 @@ xnoremap p <cmd>call UraPaste()<cr>
 
 Using `:` here would start command line mode, which would interfere with the visual mode detection in the plugin.
 
+### `UraPasteFor`
+
+Same as `UraPaste`, but takes one argument that specifies the [operator filter][#operator-filters].
+
 ## `UraPpaste`
 
 Identical to [`UraPaste`](#urapaste), but uses `P`.
+
+Same as `UraPpaste`, but takes one argument that specifies the [operator filter][#operator-filters].
 
 ## `UraDiag`
 

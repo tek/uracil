@@ -29,8 +29,9 @@ import Uracil.Data.Yank (Yank)
 import qualified Uracil.Data.Yank as Yank (text)
 import Uracil.Data.YankError (YankError)
 import qualified Uracil.Data.YankError as YankError (YankError(EmptyHistory))
+import Uracil.Data.YankOperator (YankOperator)
 import qualified Uracil.Settings as Settings (pasteTimeout)
-import Uracil.Yank (loadYank, storeYank, yankByIdent, yankByIndex, yanks)
+import Uracil.Yank (allYanks, loadYank, setOperators, storeYank, yankByIdent, yankByIndex, yanks)
 import Uracil.YankScratch (ensureYankScratch, killYankScratch, selectYankInScratch)
 
 defaultRegister ::
@@ -163,7 +164,8 @@ cancelPaste ::
 cancelPaste =
   movePastedToHistoryHead *>
   setL @Env Env.paste Nothing *>
-  killYankScratch
+  killYankScratch *>
+  setOperators Nothing
 
 cancelPasteAfter ::
   NvimE e m =>
@@ -233,7 +235,7 @@ pullRegister ::
   m ()
 pullRegister register content = do
   tpe <- getregtype register
-  storeYank tpe register content
+  storeYank tpe register "y" content
 
 fetchClipboard ::
   NvimE e m =>
@@ -259,7 +261,7 @@ syncClipboard ::
   MonadDeepError e YankError m =>
   m ()
 syncClipboard = do
-  lastTwoYanks <- take 2 <$> Lens.view Yank.text <$$> yanks
+  lastTwoYanks <- take 2 <$> Lens.view Yank.text <$$> allYanks
   skip <- getL @Env Env.skip
   setL @Env Env.skip Nothing
   traverse_ (fetchClipboard lastTwoYanks skip) [Register.Special "*", Register.Special "\""]
@@ -276,7 +278,7 @@ repaste ::
   Paste ->
   m ()
 repaste paster (Paste _ index _ _ visual) = do
-  count <- length <$> getL @Env Env.yanks
+  count <- length <$> yanks
   if count > 0
   then run count
   else throwHoist YankError.EmptyHistory
@@ -296,11 +298,13 @@ startPaste ::
   MonadDeepError e DecodeError m =>
   MonadDeepError e YankError m =>
   MonadDeepState s Env m =>
+  Maybe YankOperator ->
   (Yank -> m ()) ->
   m ()
-startPaste paster =
+startPaste operators paster =
   killYankScratch *>
   syncClipboard *>
+  setOperators operators *>
   updatePaste paster 0
 
 lockName :: Text
@@ -315,11 +319,38 @@ pasteRequest ::
   MonadDeepError e DecodeError m =>
   MonadDeepError e YankError m =>
   MonadDeepState s Env m =>
+  Maybe YankOperator ->
   (Yank -> m ()) ->
   m ()
-pasteRequest paster =
+pasteRequest operators paster =
   lockOrWait lockName $
-  maybe (startPaste paster) (repaste paster) =<< currentPaste
+  maybe (startPaste operators paster) (repaste paster) =<< currentPaste
+
+uraPasteFor ::
+  NvimE e m =>
+  MonadRibo m =>
+  MonadBaseControl IO m =>
+  MonadDeepError e SettingError m =>
+  MonadDeepError e DecodeError m =>
+  MonadDeepError e YankError m =>
+  MonadDeepState s Env m =>
+  Maybe YankOperator ->
+  m ()
+uraPasteFor operators =
+  pasteRequest operators paste
+
+uraPpasteFor ::
+  NvimE e m =>
+  MonadRibo m =>
+  MonadBaseControl IO m =>
+  MonadDeepError e SettingError m =>
+  MonadDeepError e DecodeError m =>
+  MonadDeepError e YankError m =>
+  MonadDeepState s Env m =>
+  Maybe YankOperator ->
+  m ()
+uraPpasteFor operators =
+  pasteRequest operators ppaste
 
 uraPaste ::
   NvimE e m =>
@@ -331,7 +362,7 @@ uraPaste ::
   MonadDeepState s Env m =>
   m ()
 uraPaste =
-  pasteRequest paste
+  pasteRequest Nothing paste
 
 uraPpaste ::
   NvimE e m =>
@@ -343,7 +374,7 @@ uraPpaste ::
   MonadDeepState s Env m =>
   m ()
 uraPpaste =
-  pasteRequest ppaste
+  pasteRequest Nothing ppaste
 
 uraStopPaste ::
   NvimE e m =>

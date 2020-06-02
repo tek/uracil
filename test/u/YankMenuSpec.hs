@@ -33,7 +33,7 @@ items =
     ]
   where
     item ident =
-      Yank ident (Register.Special "*") RegisterType.Line
+      Yank ident (Register.Special "*") RegisterType.Line "y"
 
 yankMenuSpec :: [Text] -> Uracil ()
 yankMenuSpec chars = do

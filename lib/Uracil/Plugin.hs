@@ -11,9 +11,9 @@ import Uracil.Data.Env (Env, Uracil)
 import Uracil.Data.Error (Error)
 import Uracil.Diag (uraDiag)
 import Uracil.Init (initialize)
-import Uracil.Paste (uraPaste, uraPpaste, uraStopPaste)
+import Uracil.Paste (uraPaste, uraPasteFor, uraPpaste, uraPpasteFor, uraStopPaste)
 import Uracil.Yank (uraYank)
-import Uracil.YankMenu (uraYankMenu)
+import Uracil.YankMenu (uraYankMenu, uraYankMenuFor)
 
 handleError :: Error -> Uracil ()
 handleError =
@@ -25,6 +25,9 @@ rpcHandlers =
     $(rpcHandler (cmd []) 'uraDiag),
     $(rpcHandlerDef 'uraPaste),
     $(rpcHandlerDef 'uraPpaste),
+    $(rpcHandlerDef 'uraPasteFor),
+    $(rpcHandlerDef 'uraPpasteFor),
+    $(rpcHandler (cmd []) 'uraYankMenuFor),
     $(rpcHandler (cmd []) 'uraYankMenu),
     $(rpcHandler (autocmd "TextYankPost" . sync) 'uraYank),
     $(rpcHandler (autocmd "CursorMoved") 'uraStopPaste)

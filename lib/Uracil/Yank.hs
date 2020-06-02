@@ -1,8 +1,9 @@
 module Uracil.Yank where
 
 import Chiasma.Data.Ident (Ident, generateIdent, sameIdent)
-import qualified Control.Lens as Lens (element, filtered, firstOf, folded)
+import qualified Control.Lens as Lens
 import Data.List.NonEmpty (NonEmpty, nonEmpty)
+import qualified Data.Text as Text
 import Ribosome.Api.Register (setregAs)
 import Ribosome.Config.Setting (settingOr, updateSetting)
 import Ribosome.Control.Monad.Ribo (prependUniqueBy)
@@ -18,7 +19,8 @@ import Uracil.Data.RegEvent (RegEvent(RegEvent))
 import Uracil.Data.Yank (Yank(Yank))
 import qualified Uracil.Data.Yank as Yank (text)
 import Uracil.Data.YankError (YankError)
-import qualified Uracil.Data.YankError as YankError (YankError(EmptyHistory, NoSuchYank, EmptyEvent, InvalidYankIndex))
+import qualified Uracil.Data.YankError as YankError
+import Uracil.Data.YankOperator (YankOperator(YankOperator))
 import qualified Uracil.Settings as Settings
 
 validRegister :: Register -> Bool
@@ -35,11 +37,12 @@ storeYank ::
   MonadDeepError e YankError m =>
   RegisterType ->
   Register ->
+  YankOperator ->
   NonEmpty Text ->
   m ()
-storeYank regtype register content = do
+storeYank regtype register operator content = do
   ident <- generateIdent
-  let yank = Yank ident register regtype content
+  let yank = Yank ident register regtype operator content
   showDebug "yank" yank
   prependUniqueBy @Env Yank.text Env.yanks yank
 
@@ -60,9 +63,9 @@ storeEvent ::
   MonadDeepError e YankError m =>
   RegEvent ->
   m ()
-storeEvent (RegEvent _ _ content register regtype) | validRegister register =
+storeEvent (RegEvent _ operator content register regtype) | validRegister register =
   ifM (settingOr False Settings.skipYank) (skipEvent content) $
-  storeYank regtype register =<< hoistMaybe YankError.EmptyEvent (nonEmpty content)
+  storeYank regtype register operator =<< hoistMaybe YankError.EmptyEvent (nonEmpty content)
 storeEvent _ =
   return ()
 
@@ -93,18 +96,27 @@ uraYank ::
 uraYank =
   ignoreError @DecodeError (storeEventIfValid =<< vimGetVvar "event")
 
+allYanks ::
+  MonadDeepState s Env m =>
+  m [Yank]
+allYanks =
+  getL @Env Env.yanks
+
+yanksFor ::
+  MonadDeepState s Env m =>
+  Maybe YankOperator ->
+  m [Yank]
+yanksFor operators = do
+  gets @Env (Lens.toListOf lens)
+  where
+    lens =
+      Env.yanks . Lens.folded . Lens.filtered (matchOperator operators)
+
 yanks ::
   MonadDeepState s Env m =>
   m [Yank]
 yanks =
-  getL @Env Env.yanks
-
-nonEmptyYanks ::
-  MonadDeepState s Env m =>
-  MonadDeepError e YankError m =>
-  m (NonEmpty Yank)
-nonEmptyYanks =
-  hoistMaybe YankError.EmptyHistory . nonEmpty =<< yanks
+  yanksFor =<< getL @Env Env.operators
 
 yankByIdent ::
   MonadDeepState s Env m =>
@@ -117,16 +129,22 @@ yankByIdent ident =
     lens =
       Env.yanks . Lens.folded . Lens.filtered (sameIdent ident)
 
+matchOperator :: Maybe YankOperator -> Yank -> Bool
+matchOperator Nothing _ =
+  True
+matchOperator (Just (YankOperator ops)) (Yank _ _ _ (YankOperator op) _) =
+  op `Text.isInfixOf` ops
+
 yankByIndex ::
   MonadDeepState s Env m =>
   MonadDeepError e YankError m =>
   Int ->
   m Yank
 yankByIndex index =
-  hoistMaybe (YankError.InvalidYankIndex index) =<< gets @Env (Lens.firstOf lens)
+  hoistMaybe (YankError.InvalidYankIndex index) . fetch =<< yanks
   where
-    lens =
-      Env.yanks . Lens.element index
+    fetch =
+      Lens.firstOf (Lens.element index)
 
 loadYank ::
   MonadRibo m =>
@@ -134,7 +152,7 @@ loadYank ::
   Register ->
   Yank ->
   m ()
-loadYank register yank@(Yank _ _ tpe text) = do
+loadYank register yank@(Yank _ _ tpe _ text) = do
   showDebug "loading yank:" yank
   setregAs tpe register text
 
@@ -147,3 +165,10 @@ loadYankIdent ::
   m ()
 loadYankIdent =
   loadYank (Register.Special "\"") <=< yankByIdent
+
+setOperators ::
+  MonadDeepState s Env m =>
+  Maybe YankOperator ->
+  m ()
+setOperators =
+  setL @Env Env.operators

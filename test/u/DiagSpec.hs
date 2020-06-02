@@ -32,12 +32,12 @@ target = [
   "# Diagnostics",
   "",
   "## Yank History",
-  "* yank: \"* v",
+  "* yank: \"* v y",
   "  item1",
-  "* yank: \"* v",
+  "* yank: \"* v y",
   "  item2",
   "  item2 cont",
-  "* yank: \"* v",
+  "* yank: \"* v y",
   "  item3", "",
   "## Errors"
   ]
@@ -51,7 +51,7 @@ yanks =
     ]
   where
     item ident =
-      Yank ident (Register.Special "*") RegisterType.Line
+      Yank ident (Register.Special "*") RegisterType.Line "y"
 
 diagSpec :: Uracil ()
 diagSpec = do

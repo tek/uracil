@@ -19,9 +19,11 @@ import qualified Ribosome.Data.RegisterType as RegisterType (RegisterType(Line))
 import Unit
 import Uracil.Data.Env (Env, Uracil)
 import qualified Uracil.Data.Env as Env (yanks)
+import Uracil.Data.RegEvent (RegEvent(RegEvent))
 import Uracil.Data.Yank (Yank(Yank))
-import Uracil.Paste (uraPaste, uraPpaste)
+import Uracil.Paste (uraPaste, uraPasteFor, uraPpaste)
 import qualified Uracil.Settings as Settings (pasteTimeout)
+import Uracil.Yank (storeEvent)
 
 item1 :: NonEmpty Text
 item1 =
@@ -37,11 +39,11 @@ item3 =
 
 yanks :: [Yank]
 yanks =
-  uncurry item <$> [
-    (Ident.Str "1", item1),
-    (Ident.Str "2", item2),
-    (Ident.Str "3", item3)
-    ]
+  [
+    item (Ident.Str "1") "y" item1,
+    item (Ident.Str "2") "d" item2,
+    item (Ident.Str "3") "y" item3
+  ]
   where
     item ident =
       Yank ident (Register.Special "*") RegisterType.Line
@@ -139,3 +141,19 @@ syncSelectionSpec = do
 test_syncSelection :: IO ()
 test_syncSelection =
   tmuxSpecDef syncSelectionSpec
+
+operatorPasteSpec :: Uracil ()
+operatorPasteSpec = do
+  clearStar
+  storeEvent (RegEvent True "y" ["line 1"] unnamedRegister RegisterType.Line)
+  storeEvent (RegEvent True "d" ["line 2"] unnamedRegister RegisterType.Line)
+  setregLine unnamedRegister ["line 2"]
+  uraPasteFor (Just "y")
+  checkContent ["line 1"]
+  where
+    checkContent ls =
+      await (gassertEqual ("" : ls)) currentBufferContent
+
+test_operatorPaste :: IO ()
+test_operatorPaste =
+  tmuxSpecDef operatorPasteSpec

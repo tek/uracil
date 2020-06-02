@@ -5,7 +5,7 @@ import Control.Lens (view)
 import Control.Monad.Trans.Resource (MonadResource)
 import qualified Data.Map.Strict as Map (fromList)
 import qualified Data.Text as Text (length, take)
-import Ribosome.Menu.Action (menuQuitWith, menuQuitWith)
+import Ribosome.Menu.Action (menuQuitWith)
 import Ribosome.Menu.Data.Menu (Menu)
 import Ribosome.Menu.Data.MenuConsumerAction (MenuConsumerAction)
 import Ribosome.Menu.Data.MenuItem (MenuItem, simpleMenuItem)
@@ -23,8 +23,9 @@ import Uracil.Data.Env (Env)
 import Uracil.Data.Yank (Yank(Yank))
 import Uracil.Data.YankError (YankError)
 import qualified Uracil.Data.YankError as YankError (YankError(EmptyHistory, InvalidMenuIndex))
+import Uracil.Data.YankOperator (YankOperator)
 import Uracil.Paste (pasteIdent, ppasteIdent)
-import Uracil.Yank (loadYankIdent, yanks)
+import Uracil.Yank (loadYankIdent, yanks, yanksFor)
 
 menuAction ::
   NvimE e m =>
@@ -72,7 +73,7 @@ yankMenuItems :: Int -> [Yank] -> [MenuItem Ident]
 yankMenuItems width yanks' =
   uncurry menuItem <$> zip yanks' [(0 :: Int)..]
   where
-    menuItem (Yank ident _ _ (line' :| rest)) _ =
+    menuItem (Yank ident _ _ _ (line' :| rest)) _ =
       simpleMenuItem ident (Text.take maxlen line' <> dots line' <> count rest)
     dots line' =
       if Text.length line' > maxlen then "..." else ""
@@ -92,7 +93,7 @@ yankMenuMappings ::
 yankMenuMappings =
   Map.fromList [("p", menuPaste), ("P", menuPpaste), ("y", menuYank)]
 
-uraYankMenu ::
+uraYankMenuFor ::
   NvimE e m =>
   MonadRibo m =>
   MonadResource m =>
@@ -100,10 +101,11 @@ uraYankMenu ::
   MonadDeepState s Env m =>
   MonadDeepError e YankError m =>
   MonadDeepError e DecodeError m =>
+  Maybe YankOperator ->
   m ()
-uraYankMenu = do
+uraYankMenuFor operators = do
   width <- windowGetWidth =<< vimGetCurrentWindow
-  void $ run =<< yankMenuItems width <$> yanks
+  void $ run =<< yankMenuItems width <$> yanksFor operators
   where
     run [] =
       throwHoist YankError.EmptyHistory
@@ -113,3 +115,15 @@ uraYankMenu = do
       defaultMenu yankMenuMappings
     promptConfig =
       PromptConfig (getCharC 0.033) basicTransition nvimPromptRenderer []
+
+uraYankMenu ::
+  NvimE e m =>
+  MonadRibo m =>
+  MonadResource m =>
+  MonadBaseControl IO m =>
+  MonadDeepState s Env m =>
+  MonadDeepError e YankError m =>
+  MonadDeepError e DecodeError m =>
+  m ()
+uraYankMenu =
+  uraYankMenuFor Nothing
