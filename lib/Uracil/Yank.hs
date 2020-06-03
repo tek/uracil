@@ -133,11 +133,11 @@ yankByIdent ident =
 matchOperator :: Maybe YankOperator -> Yank -> Bool
 matchOperator Nothing _ =
   True
-matchOperator (Just (YankOperator ops)) (Yank _ _ regtype (YankOperator op) _) =
+matchOperator (Just (YankOperator ops)) (Yank _ _ regtype (YankOperator op) lines') =
   effective `Text.isInfixOf` ops
   where
     effective =
-      if op == "d" && regtype == RegisterType.Character
+      if op == "d" && regtype == RegisterType.Character && (Text.length <$> lines') == 1 :| []
       then "x"
       else op
 
