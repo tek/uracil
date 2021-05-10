@@ -5,5 +5,4 @@ let conf = {
   \ 'dev': v:true,
   \ 'debug': get(g:, 'uracil_debug', 0)
   \ }
-
 let g:chromatin_rplugins = get(g:, 'chromatin_rplugins', []) + [conf]
