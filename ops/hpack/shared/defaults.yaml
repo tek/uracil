@@ -1,0 +1,33 @@
+<<: !include extensions.yaml
+
+dependencies:
+  - name: base
+    version: '>= 4 && < 5'
+    mixin:
+      hiding (Prelude)
+  - bytestring
+  - chiasma
+  - containers
+  - cornea
+  - data-default
+  - directory
+  - either
+  - filepath
+  - lens
+  - lifted-async
+  - lifted-base
+  - monad-control
+  - mtl
+  - nvim-hs
+  - path
+  - path-io
+  - relude >= 0.7 && < 1.2
+  - ribosome
+  - text
+  - transformers
+  - unix
+
+ghc-options:
+  - -Wall
+  - -Wredundant-constraints
+  - -Wsimplifiable-class-constraints

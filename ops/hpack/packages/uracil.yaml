@@ -1,0 +1,59 @@
+name: uracil
+synopsis: Neovim Register Manager
+<<: !include shared/meta.yaml
+defaults:
+  local: shared/defaults.yaml
+
+dependencies:
+  - aeson
+  - attoparsec
+  - exceptions
+  - hourglass
+  - hslogger
+  - messagepack
+  - network
+  - parsec
+  - parsers
+  - prettyprinter
+  - process
+  - rawstring-qm
+  - regex-with-pcre
+  - resourcet
+  - split
+  - stm-chans
+  - stm-conduit
+  - string-interpolate
+  - strings
+  - stringsearch
+  - template-haskell
+  - transformers-base
+  - typed-process
+  - unix
+  - unliftio
+  - unliftio-core
+  - utf8-string
+  - uuid
+  - vector
+
+library:
+  source-dirs: lib
+  other-modules: Prelude
+  generated-other-modules: Paths_uracil
+
+executables:
+ uracil:
+  main: Main.hs
+  source-dirs: app
+  ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+  dependencies:
+    - name: uracil
+      mixin:
+        - hiding (Uracil.Prelude)
+        - (Uracil.Prelude as Prelude)
+
+extra-source-files:
+  - readme.md
+  - changelog.md
