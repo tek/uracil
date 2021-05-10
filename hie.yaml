@@ -1,0 +1,10 @@
+cradle:
+  cabal:
+    - path: "./packages/uracil/lib"
+      component: "lib:uracil"
+
+    - path: "./packages/uracil/app"
+      component: "uracil:exe:uracil"
+
+    - path: "./packages/test/test"
+      component: "uracil-test:test:uracil-unit"
