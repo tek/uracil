@@ -211,11 +211,11 @@
         "chiasma": "chiasma"
       },
       "locked": {
-        "lastModified": 1627339162,
-        "narHash": "sha256-5SqW+RDHf/1+fjCJi+yG6hrVG3E7O0Fd0jNlNt2rPRM=",
+        "lastModified": 1627343800,
+        "narHash": "sha256-P1orXqr/bnnjdsyyn3opoSqEIZ8HJvDY9mFGHwYcWRA=",
         "owner": "tek",
         "repo": "ribosome",
-        "rev": "d037fd7d6df418bf3e1894dcdde15e2c1a3cd142",
+        "rev": "6f712e832af944c9c16bb8ddc30cd1c180ad24ed",
         "type": "github"
       },
       "original": {
