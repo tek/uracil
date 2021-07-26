@@ -5,7 +5,8 @@
 
   outputs = { ribosome, ... }:
   let
-    inherit (ribosome.inputs) chiasma hix;
+    inherit (ribosome.inputs) chiasma;
+    inherit (chiasma.inputs) hix;
     overrides = { hackage, source, minimal, configure, pkgs, ... }: {
       cornea = hackage "0.4.0.0" "1w9rkf6f861kknkskywb8fczlk7az8m56i3hvmg6a5inpvqf6p7i";
       chiasma = source.package chiasma "chiasma";
