@@ -29,11 +29,13 @@
     versionFile = "ops/hpack/packages/meta.yaml";
     runConfig = p: { extraShellInputs = [p.pkgs.neovim]; };
     modify = _: outputs: rec {
-      apps.uracil = {
-        type = "app";
-        program = "${outputs.packages.uracil}/bin/uracil";
+      apps = rec {
+        uracil = {
+          type = "app";
+          program = "${outputs.packages.uracil}/bin/uracil";
+        };
+        default = uracil;
       };
-      defaultApp = apps.uracil;
     };
   };
 }
