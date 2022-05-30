@@ -1,7 +1,7 @@
-import Neovim (neovim, defaultConfig, plugins)
+module Main where
 
-import Uracil.Plugin (plugin)
+import Uracil.Plugin (uracil)
 
 main :: IO ()
 main =
-  neovim defaultConfig { plugins = [plugin] }
+  uracil

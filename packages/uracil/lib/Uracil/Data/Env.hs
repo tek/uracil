@@ -1,26 +1,19 @@
 module Uracil.Data.Env where
 
-import Ribosome.Orphans ()
-
-import Uracil.Data.Error (Error)
 import Uracil.Data.Paste (Paste)
 import Uracil.Data.Yank (Yank)
 import Uracil.Data.YankCommand (YankCommand)
 
-type Uracil a = Ribo Env Error a
-
 data Env =
   Env {
-    _yanks :: [Yank],
-    _deletes :: [Yank],
-    _paste :: Maybe Paste,
-    _previousStar :: [Text],
-    _skip :: Maybe (NonEmpty Text),
-    _commands :: Maybe YankCommand
+    yanks :: [Yank],
+    deletes :: [Yank],
+    paste :: Maybe Paste,
+    previousStar :: [Text],
+    skip :: Maybe (NonEmpty Text),
+    command :: Maybe YankCommand
   }
-  deriving Show
-
-deepLenses ''Env
+  deriving stock (Eq, Show, Generic)
 
 instance Default Env where
   def = Env def def def def def def

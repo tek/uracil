@@ -1,18 +1,15 @@
 module Uracil.Data.Paste where
 
 import Chiasma.Data.Ident (Ident)
-import Data.Hourglass (Elapsed)
-
-import Ribosome.Data.Scratch (Scratch)
+import qualified Chronos
+import Ribosome.Data.ScratchId (ScratchId)
 
 data Paste =
   Paste {
-    _ident :: Ident,
-    _index :: Int,
-    _updated :: Elapsed,
-    _scratch :: Scratch,
-    _visual :: Bool
+    ident :: Ident,
+    index :: Int,
+    updated :: Chronos.Time,
+    scratch :: ScratchId,
+    visual :: Bool
   }
-  deriving (Eq, Show)
-
-makeClassy ''Paste
+  deriving stock (Eq, Show)

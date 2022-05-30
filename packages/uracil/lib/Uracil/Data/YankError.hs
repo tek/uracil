@@ -1,9 +1,8 @@
 module Uracil.Data.YankError where
 
 import Chiasma.Data.Ident (Ident)
-import Ribosome.Data.ErrorReport (ErrorReport(ErrorReport))
-import Ribosome.Error.Report.Class (ReportError(..))
-import System.Log.Logger (Priority(NOTICE, ERROR, DEBUG))
+import Log (Severity (Debug, Error, Info))
+import Ribosome.Host.Data.HandlerError (ErrorMessage (ErrorMessage), ToErrorMessage (toErrorMessage))
 
 data YankError =
   EmptyHistory
@@ -15,18 +14,17 @@ data YankError =
   InvalidYankIndex Int
   |
   EmptyEvent
-  deriving (Eq, Show)
+  deriving stock (Eq, Show)
 
-deepPrisms ''YankError
-
-instance ReportError YankError where
-  errorReport EmptyHistory =
-    ErrorReport "yank history is empty" ["YankError.EmptyHistory"] NOTICE
-  errorReport InvalidMenuIndex =
-    ErrorReport "internal error" ["invalid index in yank menu"] ERROR
-  errorReport (NoSuchYank ident) =
-    ErrorReport "internal error" ["invalid ident in yank menu: " <> show ident] ERROR
-  errorReport (InvalidYankIndex index) =
-    ErrorReport "internal error" ["invalid index for yank history: " <> show index] ERROR
-  errorReport EmptyEvent =
-    ErrorReport "invalid data from neovim" ["empty event"] DEBUG
+instance ToErrorMessage YankError where
+  toErrorMessage = \case
+    EmptyHistory ->
+      ErrorMessage "yank history is empty" ["YankError.EmptyHistory"] Info
+    InvalidMenuIndex ->
+      ErrorMessage "internal error" ["invalid index in yank menu"] Error
+    (NoSuchYank ident) ->
+      ErrorMessage "internal error" ["invalid ident in yank menu: " <> show ident] Error
+    (InvalidYankIndex index) ->
+      ErrorMessage "internal error" ["invalid index for yank history: " <> show index] Error
+    EmptyEvent ->
+      ErrorMessage "invalid data from neovim" ["empty event"] Debug

@@ -2,6 +2,8 @@ module Uracil.Data.RegEvent where
 
 import Ribosome.Data.Register (Register)
 import Ribosome.Data.RegisterType (RegisterType)
+import Ribosome.Host.Class.Msgpack.Decode (MsgpackDecode)
+
 import Uracil.Data.YankCommand (YankCommand)
 
 data RegEvent =
@@ -12,4 +14,5 @@ data RegEvent =
     regname :: Register,
     regtype :: RegisterType
   }
-  deriving (Eq, Show, Generic, MsgpackDecode)
+  deriving stock (Eq, Show, Generic)
+  deriving anyclass (MsgpackDecode)

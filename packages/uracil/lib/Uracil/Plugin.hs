@@ -1,43 +1,55 @@
 module Uracil.Plugin where
 
-import qualified Data.Map.Strict as Map (empty)
-import Neovim (Neovim, NeovimPlugin, Plugin(..), wrapPlugin)
-import Ribosome.Control.Ribosome (Ribosome)
-import Ribosome.Error.Report (reportError)
-import Ribosome.Plugin (RpcDef, autocmd, cmd, riboPlugin, rpcHandler, rpcHandlerDef, sync)
+import Conc (interpretAtomic, interpretSyncAs)
+import Ribosome.Data.PluginConfig (PluginConfig (PluginConfig))
+import Ribosome.Host.Data.Execution (Execution (Async))
+import Ribosome.Host.Data.RpcHandler (RpcHandler)
+import Ribosome.Host.Effect.Errors (Errors)
+import Ribosome.Host.Handler (rpcAutocmd, rpcCommand, rpcFunction)
+import Ribosome.Remote (runNvimPluginIO)
 
-import Uracil.ContextPaste (uraContextPaste)
-import Uracil.Data.Env (Env, Uracil)
-import Uracil.Data.Error (Error)
+import Uracil.Data.Env (Env)
+import Uracil.Data.PasteLock (PasteLock (PasteLock))
 import Uracil.Diag (uraDiag)
-import Uracil.Init (initialize)
-import Uracil.Paste (uraPaste, uraPasteFor, uraPpaste, uraPpasteFor, uraStopPaste)
+import Uracil.Paste (PasteStack, uraPaste, uraPasteFor, uraPpaste, uraPpasteFor, uraStopPaste)
 import Uracil.Yank (uraYank)
 import Uracil.YankMenu (uraYankMenu, uraYankMenuFor)
 
-handleError :: Error -> Uracil ()
-handleError =
-  reportError "uracil"
-
-rpcHandlers :: [[RpcDef (Ribo Env Error)]]
-rpcHandlers =
+type UracilStack =
   [
-    $(rpcHandler (cmd []) 'uraDiag),
-    $(rpcHandlerDef 'uraPaste),
-    $(rpcHandlerDef 'uraPpaste),
-    $(rpcHandlerDef 'uraPasteFor),
-    $(rpcHandlerDef 'uraPpasteFor),
-    $(rpcHandlerDef 'uraContextPaste),
-    $(rpcHandler (cmd []) 'uraYankMenuFor),
-    $(rpcHandler (cmd []) 'uraYankMenu),
-    $(rpcHandler (autocmd "TextYankPost" . sync) 'uraYank),
-    $(rpcHandler (autocmd "CursorMoved") 'uraStopPaste)
-    ]
+    Sync PasteLock,
+    AtomicState Env
+  ]
 
-plugin' :: Ribosome Env -> Plugin (Ribosome Env)
-plugin' env =
-  riboPlugin "uracil" env rpcHandlers [] handleError Map.empty
+conf :: PluginConfig
+conf =
+  PluginConfig "uracil" def
 
-plugin :: Neovim e NeovimPlugin
-plugin =
-  wrapPlugin . plugin' =<< initialize
+handlers ::
+  Members [Errors, Mask res, Race, Final IO] r =>
+  Members PasteStack r =>
+  [RpcHandler r]
+handlers =
+  [
+    rpcCommand "UraDiag" Async uraDiag,
+    rpcFunction "UraPaste" Async uraPaste,
+    rpcFunction "UraPpaste" Async uraPpaste,
+    rpcFunction "UraPasteFor" Async uraPasteFor,
+    rpcFunction "UraPpasteFor" Async uraPpasteFor,
+    rpcCommand "UraYankMenu" Async uraYankMenu,
+    rpcCommand "UraYankMenuFor" Async uraYankMenuFor,
+    -- TODO this was sync in the old version
+    rpcAutocmd "UraYank" "TextYankPost" def uraYank,
+    rpcAutocmd "UraStopPaste" "CursorMoved" def uraStopPaste
+  ]
+
+interpretUracilStack ::
+  Members [Race, Embed IO] r =>
+  InterpretersFor UracilStack r
+interpretUracilStack =
+  interpretAtomic def .
+  interpretSyncAs PasteLock
+
+uracil :: IO ()
+uracil =
+  runNvimPluginIO @UracilStack conf mempty mempty handlers interpretUracilStack

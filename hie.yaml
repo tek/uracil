@@ -7,4 +7,4 @@ cradle:
       component: "uracil:exe:uracil"
 
     - path: "./packages/test/test"
-      component: "uracil-test:test:uracil-unit"
+      component: "uracil-test:test:uracil-test-unit"

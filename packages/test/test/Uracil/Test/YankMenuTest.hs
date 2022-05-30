@@ -1,22 +1,23 @@
 module Uracil.Test.YankMenuTest where
 
-import qualified Chiasma.Data.Ident as Ident (Ident(Str))
+import qualified Chiasma.Data.Ident as Ident (Ident (Str))
+import Conc (interpretAtomic, interpretMaskFinal)
+import Control.Lens ((.~))
 import qualified Data.List.NonEmpty as NonEmpty (toList)
-import Hedgehog ((===))
+import Polysemy.Test (TestError, UnitTest, unitTest, (===))
 import Ribosome.Api.Buffer (currentBufferContent, setCurrentBufferContent)
+import Ribosome.Api.Input (withInput)
 import Ribosome.Api.Register (getreg, unnamedRegister)
 import Ribosome.Api.Window (setCurrentLine)
-import qualified Ribosome.Data.Register as Register (Register(Special))
-import qualified Ribosome.Data.RegisterType as RegisterType (RegisterType(Line))
-import Ribosome.Test.Input (withInput)
-import Ribosome.Test.Run (UnitTest, unitTest)
+import qualified Ribosome.Data.Register as Register (Register (Special))
+import qualified Ribosome.Data.RegisterType as RegisterType (RegisterType (Line))
+import Ribosome.Host (Rpc)
+import Ribosome.Test.Error (resumeTestError, testHandler)
+import Ribosome.Test.Run (embedPluginTest_)
 import Test.Tasty (TestTree, testGroup)
 
-import Uracil.Data.Env (Env)
-import qualified Uracil.Data.Env as Env (yanks)
-import Uracil.Data.Yank (Yank(Yank))
-import Uracil.Test.Unit (UracilTest, tmuxTestDef)
-import Uracil.YankMenu (uraYankMenu)
+import Uracil.Data.Yank (Yank (Yank))
+import Uracil.YankMenu (YankMenuStack, uraYankMenu)
 
 targetItem :: NonEmpty Text
 targetItem =
@@ -35,57 +36,53 @@ items =
     item ident =
       Yank ident (Register.Special "*") RegisterType.Line "y"
 
-yankMenuTest :: [Text] -> UracilTest ()
-yankMenuTest chars = do
-  setL @Env Env.yanks items
-  setCurrentBufferContent ["1", "2", "3"]
-  setCurrentLine 1
-  withInput (Just 0.05) chars uraYankMenu
+yankMenuTest ::
+  Members (YankMenuStack res) r =>
+  Members [Error TestError, Async] r =>
+  [Text] ->
+  Sem r ()
+yankMenuTest chars =
+  resumeTestError @Rpc do
+    atomicModify' (#yanks .~ items)
+    setCurrentBufferContent ["1", "2", "3"]
+    setCurrentLine 1
+    withInput Nothing (Just 50) chars (testHandler uraYankMenu)
 
 yankChars :: [Text]
 yankChars =
   ["k", "k", "k", "y"]
 
-yankMenuYankTest :: UracilTest ()
-yankMenuYankTest = do
-  yankMenuTest yankChars
-  (Left (NonEmpty.toList targetItem) ===) =<< getreg unnamedRegister
-
 test_yankMenuYank :: UnitTest
 test_yankMenuYank =
-  tmuxTestDef yankMenuYankTest
+  embedPluginTest_ $ interpretMaskFinal $ interpretAtomic def do
+    yankMenuTest yankChars
+    (Left (NonEmpty.toList targetItem) ===) =<< getreg unnamedRegister
 
 pasteChars :: [Text]
 pasteChars =
   ["k", "k", "k", "p"]
 
-yankMenuPasteTest :: UracilTest ()
-yankMenuPasteTest = do
-  yankMenuTest pasteChars
-  (target ===) =<< currentBufferContent
+test_yankMenuPaste :: UnitTest
+test_yankMenuPaste =
+  embedPluginTest_ $ interpretMaskFinal $ interpretAtomic def do
+    yankMenuTest pasteChars
+    (target ===) =<< currentBufferContent
   where
     target =
       ["1", "2"] <> NonEmpty.toList targetItem <> ["3"]
-
-test_yankMenuPaste :: UnitTest
-test_yankMenuPaste =
-  tmuxTestDef yankMenuPasteTest
 
 ppasteChars :: [Text]
 ppasteChars =
   ["k", "k", "k", "P"]
 
-yankMenuPpasteTest :: UracilTest ()
-yankMenuPpasteTest = do
-  yankMenuTest ppasteChars
-  (target ===) =<< currentBufferContent
+test_yankMenuPpaste :: UnitTest
+test_yankMenuPpaste =
+  embedPluginTest_ $ interpretMaskFinal $ interpretAtomic def do
+    yankMenuTest ppasteChars
+    (target ===) =<< currentBufferContent
   where
     target =
       ["1"] <> NonEmpty.toList targetItem <> ["2", "3"]
-
-test_yankMenuPpaste :: UnitTest
-test_yankMenuPpaste =
-  tmuxTestDef yankMenuPpasteTest
 
 test_yankMenu :: TestTree
 test_yankMenu =

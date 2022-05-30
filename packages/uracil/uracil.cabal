@@ -1,25 +1,22 @@
 cabal-version: 2.2
 
--- This file has been generated from package.yaml by hpack version 0.34.4.
+-- This file has been generated from package.yaml by hpack version 0.34.6.
 --
 -- see: https://github.com/sol/hpack
 
 name:           uracil
 version:        0.1.0.0
 synopsis:       Neovim Register Manager
-description:    Please see the README on GitHub at <https://github.com/tek/uracil>
+description:    See https://hackage.haskell.org/package/uracil/docs/Uracil.html
 category:       Neovim
 homepage:       https://github.com/tek/uracil#readme
 bug-reports:    https://github.com/tek/uracil/issues
 author:         Torsten Schmits
-maintainer:     tek@tryp.io
-copyright:      2021 Torsten Schmits
+maintainer:     hackage@tryp.io
+copyright:      2022 Torsten Schmits
 license:        BSD-2-Clause-Patent
 license-file:   LICENSE
 build-type:     Simple
-extra-source-files:
-    readme.md
-    changelog.md
 
 source-repository head
   type: git
@@ -29,8 +26,8 @@ library
   exposed-modules:
       Uracil.ContextPaste
       Uracil.Data.Env
-      Uracil.Data.Error
       Uracil.Data.Paste
+      Uracil.Data.PasteLock
       Uracil.Data.RegEvent
       Uracil.Data.Yank
       Uracil.Data.YankCommand
@@ -39,16 +36,10 @@ library
       Uracil.Init
       Uracil.Paste
       Uracil.Plugin
-      Uracil.Prelude
       Uracil.Settings
       Uracil.Yank
       Uracil.YankMenu
       Uracil.YankScratch
-  other-modules:
-      Prelude
-      Paths_uracil
-  autogen-modules:
-      Paths_uracil
   hs-source-dirs:
       lib
   default-extensions:
@@ -65,8 +56,10 @@ library
       DeriveFoldable
       DeriveFunctor
       DeriveGeneric
+      DeriveLift
       DeriveTraversable
       DerivingStrategies
+      DerivingVia
       DisambiguateRecordFields
       DoAndIfThenElse
       DuplicateRecordFields
@@ -96,6 +89,7 @@ library
       RankNTypes
       RecordWildCards
       RecursiveDo
+      RoleAnnotations
       ScopedTypeVariables
       StandaloneDeriving
       TemplateHaskell
@@ -108,66 +102,31 @@ library
       UndecidableInstances
       UnicodeSyntax
       ViewPatterns
-  ghc-options: -Wall -Wredundant-constraints -Wsimplifiable-class-constraints
+      StandaloneKindSignatures
+      OverloadedLabels
+  ghc-options: -Wall -Wredundant-constraints -Wincomplete-uni-patterns -Wmissing-deriving-strategies -Widentities -Wunused-packages -fplugin=Polysemy.Plugin
   build-depends:
-      aeson
-    , attoparsec
-    , base ==4.*
-    , bytestring
+      base ==4.*
     , chiasma
-    , containers
-    , cornea
-    , data-default
-    , directory
-    , either
-    , exceptions
-    , filepath
-    , hourglass
-    , hslogger
+    , chronos
+    , exon
+    , extra
+    , generic-lens
+    , incipit
     , lens
-    , lifted-async
-    , lifted-base
-    , messagepack
-    , monad-control
-    , mtl
-    , network
-    , nvim-hs
-    , parsec
-    , parsers
-    , path
-    , path-io
+    , polysemy
+    , polysemy-chronos
+    , polysemy-plugin
     , prettyprinter
-    , process
-    , rawstring-qm
-    , regex-with-pcre
-    , relude >=0.7 && <1.2
-    , resourcet
     , ribosome
-    , split
-    , stm-chans
-    , stm-conduit
-    , string-interpolate
-    , strings
-    , stringsearch
-    , template-haskell
-    , text
-    , transformers
-    , transformers-base
-    , typed-process
-    , unix
-    , unliftio
-    , unliftio-core
-    , utf8-string
-    , uuid
-    , vector
+    , ribosome-host
+    , ribosome-menu
   mixins:
       base hiding (Prelude)
   default-language: Haskell2010
 
 executable uracil
   main-is: Main.hs
-  other-modules:
-      Paths_uracil
   hs-source-dirs:
       app
   default-extensions:
@@ -184,8 +143,10 @@ executable uracil
       DeriveFoldable
       DeriveFunctor
       DeriveGeneric
+      DeriveLift
       DeriveTraversable
       DerivingStrategies
+      DerivingVia
       DisambiguateRecordFields
       DoAndIfThenElse
       DuplicateRecordFields
@@ -215,6 +176,7 @@ executable uracil
       RankNTypes
       RecordWildCards
       RecursiveDo
+      RoleAnnotations
       ScopedTypeVariables
       StandaloneDeriving
       TemplateHaskell
@@ -227,61 +189,15 @@ executable uracil
       UndecidableInstances
       UnicodeSyntax
       ViewPatterns
-  ghc-options: -Wall -Wredundant-constraints -Wsimplifiable-class-constraints -threaded -rtsopts -with-rtsopts=-N
+      StandaloneKindSignatures
+      OverloadedLabels
+  ghc-options: -Wall -Wredundant-constraints -Wincomplete-uni-patterns -Wmissing-deriving-strategies -Widentities -Wunused-packages -fplugin=Polysemy.Plugin -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      aeson
-    , attoparsec
-    , base ==4.*
-    , bytestring
-    , chiasma
-    , containers
-    , cornea
-    , data-default
-    , directory
-    , either
-    , exceptions
-    , filepath
-    , hourglass
-    , hslogger
-    , lens
-    , lifted-async
-    , lifted-base
-    , messagepack
-    , monad-control
-    , mtl
-    , network
-    , nvim-hs
-    , parsec
-    , parsers
-    , path
-    , path-io
-    , prettyprinter
-    , process
-    , rawstring-qm
-    , regex-with-pcre
-    , relude >=0.7 && <1.2
-    , resourcet
-    , ribosome
-    , split
-    , stm-chans
-    , stm-conduit
-    , string-interpolate
-    , strings
-    , stringsearch
-    , template-haskell
-    , text
-    , transformers
-    , transformers-base
-    , typed-process
-    , unix
-    , unliftio
-    , unliftio-core
+      base ==4.*
+    , incipit
+    , polysemy
+    , polysemy-plugin
     , uracil
-    , utf8-string
-    , uuid
-    , vector
   mixins:
       base hiding (Prelude)
-    , uracil hiding (Uracil.Prelude)
-    , uracil (Uracil.Prelude as Prelude)
   default-language: Haskell2010

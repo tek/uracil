@@ -1,19 +1,19 @@
 cabal-version: 2.2
 
--- This file has been generated from package.yaml by hpack version 0.34.4.
+-- This file has been generated from package.yaml by hpack version 0.34.6.
 --
 -- see: https://github.com/sol/hpack
 
 name:           uracil-test
 version:        0.1.0.0
-synopsis:       Neovim Register Manager, Tests
-description:    Please see the README on GitHub at <https://github.com/tek/uracil>
+synopsis:       Uracil tests
+description:    See https://hackage.haskell.org/package/uracil/docs/Uracil.html
 category:       Neovim
 homepage:       https://github.com/tek/uracil#readme
 bug-reports:    https://github.com/tek/uracil/issues
 author:         Torsten Schmits
-maintainer:     tek@tryp.io
-copyright:      2021 Torsten Schmits
+maintainer:     hackage@tryp.io
+copyright:      2022 Torsten Schmits
 license:        BSD-2-Clause-Patent
 license-file:   LICENSE
 build-type:     Simple
@@ -23,10 +23,6 @@ source-repository head
   location: https://github.com/tek/uracil
 
 library
-  exposed-modules:
-      Keep
-  other-modules:
-      Paths_uracil_test
   hs-source-dirs:
       lib
   default-extensions:
@@ -43,8 +39,10 @@ library
       DeriveFoldable
       DeriveFunctor
       DeriveGeneric
+      DeriveLift
       DeriveTraversable
       DerivingStrategies
+      DerivingVia
       DisambiguateRecordFields
       DoAndIfThenElse
       DuplicateRecordFields
@@ -74,6 +72,7 @@ library
       RankNTypes
       RecordWildCards
       RecursiveDo
+      RoleAnnotations
       ScopedTypeVariables
       StandaloneDeriving
       TemplateHaskell
@@ -86,49 +85,28 @@ library
       UndecidableInstances
       UnicodeSyntax
       ViewPatterns
-  ghc-options: -Wall -Wredundant-constraints -Wsimplifiable-class-constraints
+      StandaloneKindSignatures
+      OverloadedLabels
+  ghc-options: -Wall -Wredundant-constraints -Wincomplete-uni-patterns -Wmissing-deriving-strategies -Widentities -Wunused-packages -fplugin=Polysemy.Plugin
   build-depends:
       base ==4.*
-    , bytestring
-    , chiasma
-    , containers
-    , cornea
-    , data-default
-    , directory
-    , either
-    , filepath
-    , lens
-    , lifted-async
-    , lifted-base
-    , monad-control
-    , mtl
-    , nvim-hs
-    , path
-    , path-io
-    , relude >=0.7 && <1.2
-    , ribosome
-    , text
-    , transformers
-    , unix
-    , uracil
+    , incipit
+    , polysemy
+    , polysemy-plugin
   mixins:
       base hiding (Prelude)
-    , uracil hiding (Uracil.Prelude)
-    , uracil (Uracil.Prelude as Prelude)
   default-language: Haskell2010
 
-test-suite uracil-unit
+test-suite uracil-test-unit
   type: exitcode-stdio-1.0
   main-is: Main.hs
   other-modules:
-      Uracil.Test.Config
       Uracil.Test.ContextPasteTest
       Uracil.Test.DiagTest
       Uracil.Test.PasteTest
-      Uracil.Test.Unit
+      Uracil.Test.Run
       Uracil.Test.YankMenuTest
       Uracil.Test.YankTest
-      Paths_uracil_test
   hs-source-dirs:
       test
   default-extensions:
@@ -145,8 +123,10 @@ test-suite uracil-unit
       DeriveFoldable
       DeriveFunctor
       DeriveGeneric
+      DeriveLift
       DeriveTraversable
       DerivingStrategies
+      DerivingVia
       DisambiguateRecordFields
       DoAndIfThenElse
       DuplicateRecordFields
@@ -176,6 +156,7 @@ test-suite uracil-unit
       RankNTypes
       RecordWildCards
       RecursiveDo
+      RoleAnnotations
       ScopedTypeVariables
       StandaloneDeriving
       TemplateHaskell
@@ -188,37 +169,23 @@ test-suite uracil-unit
       UndecidableInstances
       UnicodeSyntax
       ViewPatterns
-  ghc-options: -Wall -Wredundant-constraints -Wsimplifiable-class-constraints -threaded -rtsopts -with-rtsopts=-N
+      StandaloneKindSignatures
+      OverloadedLabels
+  ghc-options: -Wall -Wredundant-constraints -Wincomplete-uni-patterns -Wmissing-deriving-strategies -Widentities -Wunused-packages -fplugin=Polysemy.Plugin -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base ==4.*
-    , bytestring
     , chiasma
-    , containers
-    , cornea
-    , data-default
-    , directory
-    , either
-    , filepath
-    , hedgehog
+    , incipit
     , lens
-    , lifted-async
-    , lifted-base
-    , monad-control
-    , mtl
-    , nvim-hs
-    , path
-    , path-io
-    , relude >=0.7 && <1.2
+    , polysemy
+    , polysemy-plugin
+    , polysemy-test
     , ribosome
+    , ribosome-host
+    , ribosome-host-test
     , ribosome-test
     , tasty
-    , tasty-hedgehog
-    , text
-    , transformers
-    , unix
     , uracil
   mixins:
       base hiding (Prelude)
-    , uracil hiding (Uracil.Prelude)
-    , uracil (Uracil.Prelude as Prelude)
   default-language: Haskell2010

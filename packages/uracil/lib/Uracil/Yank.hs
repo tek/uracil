@@ -2,24 +2,28 @@ module Uracil.Yank where
 
 import Chiasma.Data.Ident (Ident, generateIdent, sameIdent)
 import qualified Control.Lens as Lens
+import Data.List (nub)
 import qualified Data.Text as Text
+import Exon (exon)
+import qualified Log
 import Ribosome.Api.Register (setregAs)
-import Ribosome.Config.Setting (settingOr, updateSetting)
-import Ribosome.Control.Monad.Ribo (prependUniqueBy)
 import Ribosome.Data.Register (Register)
-import qualified Ribosome.Data.Register as Register (Register(Special, Empty))
+import qualified Ribosome.Data.Register as Register (Register (Empty, Special))
 import qualified Ribosome.Data.RegisterType as RegisterType
 import Ribosome.Data.RegisterType (RegisterType)
-import Ribosome.Log (showDebug)
-import Ribosome.Msgpack.Error (DecodeError)
-import Ribosome.Nvim.Api.IO (vimGetVvar)
+import Ribosome.Data.SettingError (SettingError)
+import qualified Ribosome.Effect.Settings as Settings
+import Ribosome.Effect.Settings (Settings)
+import Ribosome.Host (Rpc, RpcError)
+import Ribosome.Host.Api.Effect (vimGetVvar)
+import Ribosome.Host.Data.HandlerError (mapHandlerError)
+import Ribosome.Host.Data.RpcHandler (Handler)
 
 import qualified Uracil.Data.Env as Env
 import Uracil.Data.Env (Env)
-import Uracil.Data.RegEvent (RegEvent(RegEvent))
-import Uracil.Data.Yank (Yank(Yank))
-import qualified Uracil.Data.Yank as Yank (content)
-import Uracil.Data.YankCommand (YankCommand(YankCommand))
+import Uracil.Data.RegEvent (RegEvent (RegEvent))
+import Uracil.Data.Yank (Yank (Yank))
+import Uracil.Data.YankCommand (YankCommand (YankCommand))
 import qualified Uracil.Data.YankError as YankError
 import Uracil.Data.YankError (YankError)
 import qualified Uracil.Settings as Settings
@@ -33,103 +37,66 @@ validRegister _ =
   False
 
 storeYank ::
-  MonadRibo m =>
-  MonadDeepState s Env m =>
+  Members [AtomicState Env, Log, Embed IO] r =>
   RegisterType ->
   Register ->
   YankCommand ->
   NonEmpty Text ->
-  m ()
+  Sem r ()
 storeYank regtype register operator content = do
   ident <- generateIdent
   let yank = Yank ident register regtype operator content
-  showDebug "yank" yank
-  prependUniqueBy @Env Yank.content Env.yanks yank
+  Log.debug [exon|store: #{show yank}|]
+  atomicModify' \ s -> s { Env.yanks = nub (yank : Env.yanks s) }
 
 skipEvent ::
-  NvimE e m =>
-  MonadRibo m =>
-  MonadDeepState s Env m =>
+  Members [Settings !! SettingError, AtomicState Env, Log, Embed IO] r =>
   [Text] ->
-  m ()
+  Sem r ()
 skipEvent content = do
-  setL @Env Env.skip (nonEmpty content)
-  updateSetting Settings.skipYank False
+  atomicModify' \ s -> s { Env.skip = nonEmpty content }
+  resume_ (Settings.update Settings.skipYank False)
 
 storeEvent ::
-  NvimE e m =>
-  MonadRibo m =>
-  MonadDeepState s Env m =>
-  MonadDeepError e YankError m =>
+  Members [Settings !! SettingError, AtomicState Env, Stop YankError, Log, Embed IO] r =>
   RegEvent ->
-  m ()
+  Sem r ()
 storeEvent (RegEvent _ operator content register regtype) | validRegister register =
-  ifM (settingOr False Settings.skipYank) (skipEvent content) $
-  storeYank regtype register operator =<< hoistMaybe YankError.EmptyEvent (nonEmpty content)
+  ifM (Settings.or False Settings.skipYank) (skipEvent content) $
+  storeYank regtype register operator =<< stopNote YankError.EmptyEvent (nonEmpty content)
 storeEvent _ =
-  return ()
+  pure ()
 
 eventValid ::
-  NvimE e m =>
-  MonadDeepState s Env m =>
-  m Bool
+  Member (AtomicState Env) r =>
+  Sem r Bool
 eventValid =
-  isNothing <$> getL @Env Env.paste
+  isNothing <$> atomicGets Env.paste
 
 storeEventIfValid ::
-  NvimE e m =>
-  MonadRibo m =>
+  Members [Settings !! SettingError, AtomicState Env, Stop YankError, Log, Embed IO] r =>
   RegEvent ->
-  MonadDeepState s Env m =>
-  MonadDeepError e YankError m =>
-  m ()
+  Sem r ()
 storeEventIfValid =
   whenM eventValid . storeEvent
 
 uraYank ::
-  NvimE e m =>
-  MonadRibo m =>
-  MonadDeepError e DecodeError m =>
-  MonadDeepError e YankError m =>
-  MonadDeepState s Env m =>
-  m ()
+  Members [Settings !! SettingError, Rpc !! RpcError, AtomicState Env, Log, Embed IO] r =>
+  Handler r ()
 uraYank =
-  ignoreError @DecodeError (storeEventIfValid =<< vimGetVvar "event")
+  mapHandlerError @YankError do
+    resume_ @RpcError (storeEventIfValid =<< vimGetVvar "event")
 
 allYanks ::
-  MonadDeepState s Env m =>
-  m [Yank]
+  Member (AtomicState Env) r =>
+  Sem r [Yank]
 allYanks =
-  getL @Env Env.yanks
+  atomicGets Env.yanks
 
-yanksFor ::
-  MonadDeepState s Env m =>
+matchOperator ::
   Maybe YankCommand ->
-  m [Yank]
-yanksFor commands = do
-  gets @Env (Lens.toListOf lens)
-  where
-    lens =
-      Env.yanks . Lens.folded . Lens.filtered (matchOperator commands)
-
-yanks ::
-  MonadDeepState s Env m =>
-  m [Yank]
-yanks =
-  yanksFor =<< getL @Env Env.commands
-
-yankByIdent ::
-  MonadDeepState s Env m =>
-  MonadDeepError e YankError m =>
-  Ident ->
-  m Yank
-yankByIdent ident =
-  hoistMaybe (YankError.NoSuchYank ident) =<< gets @Env (Lens.firstOf lens)
-  where
-    lens =
-      Env.yanks . Lens.folded . Lens.filtered (sameIdent ident)
-
-matchOperator :: Maybe YankCommand -> Yank -> Bool
+  Yank ->
+  Bool
 matchOperator Nothing _ =
   True
 matchOperator (Just (YankCommand ops)) (Yank _ _ regtype (YankCommand op) lines') =
@@ -140,40 +107,55 @@ matchOperator (Just (YankCommand ops)) (Yank _ _ regtype (YankCommand op) lines'
       then "x"
       else op
 
+yanksFor ::
+  Member (AtomicState Env) r =>
+  Maybe YankCommand ->
+  Sem r [Yank]
+yanksFor cmd = do
+  atomicGets (filter (matchOperator cmd) . Env.yanks)
+
+yanks ::
+  Member (AtomicState Env) r =>
+  Sem r [Yank]
+yanks =
+  yanksFor =<< atomicGets Env.command
+
+yankByIdent ::
+  Members [AtomicState Env, Stop YankError] r =>
+  Ident ->
+  Sem r Yank
+yankByIdent ident =
+  stopNote (YankError.NoSuchYank ident) =<< atomicGets (head . filter (sameIdent ident) . Env.yanks)
+
 yankByIndex ::
-  MonadDeepState s Env m =>
-  MonadDeepError e YankError m =>
+  Members [AtomicState Env, Stop YankError] r =>
   Int ->
-  m Yank
+  Sem r Yank
 yankByIndex index =
-  hoistMaybe (YankError.InvalidYankIndex index) . fetch =<< yanks
+  stopNote (YankError.InvalidYankIndex index) . fetch =<< yanks
   where
     fetch =
       Lens.firstOf (Lens.element index)
 
 loadYank ::
-  MonadRibo m =>
-  NvimE e m =>
+  Members [Rpc, Log] r =>
   Register ->
   Yank ->
-  m ()
+  Sem r ()
 loadYank register yank@(Yank _ _ tpe _ content) = do
-  showDebug "loading yank:" yank
+  Log.debug [exon|load: #{show yank}|]
   setregAs tpe register content
 
 loadYankIdent ::
-  NvimE e m =>
-  MonadRibo m =>
-  MonadDeepState s Env m =>
-  MonadDeepError e YankError m =>
+  Members [Rpc, Log, AtomicState Env, Stop YankError] r =>
   Ident ->
-  m ()
+  Sem r ()
 loadYankIdent =
   loadYank (Register.Special "\"") <=< yankByIdent
 
-setCommands ::
-  MonadDeepState s Env m =>
+setCommand ::
+  Member (AtomicState Env) r =>
   Maybe YankCommand ->
-  m ()
-setCommands =
-  setL @Env Env.commands
+  Sem r ()
+setCommand c =
+  atomicModify \ ys -> ys { Env.command = c }

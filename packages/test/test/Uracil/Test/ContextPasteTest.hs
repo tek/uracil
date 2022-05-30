@@ -1,13 +1,9 @@
 module Uracil.Test.ContextPasteTest where
 
-import Ribosome.Test.Run (UnitTest)
-import Uracil.Test.Unit (UracilTest, testDef)
-import Hedgehog ((===))
-
-contextPasteTest :: UracilTest ()
-contextPasteTest = do
-  True === True
+import Polysemy.Test (UnitTest, (===))
+import Ribosome.Host.Test.Run (runTest)
 
 test_contextPaste :: UnitTest
 test_contextPaste =
-  testDef contextPasteTest
+  runTest do
+    True === True

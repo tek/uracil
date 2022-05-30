@@ -1,8 +1,9 @@
 module Uracil.Settings where
 
-import Ribosome.Data.Setting (Setting(Setting))
+import Ribosome.Data.Setting (Setting (Setting))
+import Time (Seconds)
 
-pasteTimeout :: Setting Int
+pasteTimeout :: Setting Seconds
 pasteTimeout =
   Setting "paste_timeout" True (Just 1)
 

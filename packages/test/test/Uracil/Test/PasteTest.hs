@@ -1,28 +1,29 @@
 module Uracil.Test.PasteTest where
 
-import qualified Chiasma.Data.Ident as Ident (Ident(Str))
+import qualified Chiasma.Data.Ident as Ident (Ident (Str))
+import Control.Lens ((.~))
 import qualified Data.List.NonEmpty as NonEmpty (toList)
-import Hedgehog ((===))
-import Ribosome.Api.Autocmd (doautocmd)
+import Polysemy.Test (UnitTest, assertEq, unitTest, (===))
 import Ribosome.Api.Buffer (currentBufferContent, setCurrentBufferContent)
 import Ribosome.Api.Normal (normal)
 import Ribosome.Api.Register (getreg, setregLine, starRegister, unnamedRegister)
 import Ribosome.Api.Window (setCurrentCursor, setCurrentLine)
-import Ribosome.Config.Setting (updateSetting)
-import qualified Ribosome.Data.Register as Register (Register(Special))
-import qualified Ribosome.Data.RegisterType as RegisterType (RegisterType(Line))
-import Ribosome.Nvim.Api.IO (vimGetWindows, vimSetOption)
-import Ribosome.Test.Await (await, awaitEqual, awaitEqual_)
-import Ribosome.Test.Run (UnitTest, unitTest)
+import qualified Ribosome.Data.Register as Register (Register (Special))
+import qualified Ribosome.Data.RegisterType as RegisterType (RegisterType (Line))
+import qualified Ribosome.Effect.Settings as Settings
+import Ribosome.Effect.Settings (Settings)
+import Ribosome.Host (Rpc)
+import Ribosome.Host.Api.Effect (vimGetWindows)
+import Ribosome.Host.Data.HandlerError (mapHandlerError)
+import Ribosome.Test.Error (resumeTestError)
+import Ribosome.Test.Wait (assertWait)
 import Test.Tasty (TestTree, testGroup)
 
-import Uracil.Data.Env (Env)
-import qualified Uracil.Data.Env as Env (yanks)
-import Uracil.Data.RegEvent (RegEvent(RegEvent))
-import Uracil.Data.Yank (Yank(Yank))
-import Uracil.Paste (uraPaste, uraPasteFor, uraPpaste)
+import Uracil.Data.RegEvent (RegEvent (RegEvent))
+import Uracil.Data.Yank (Yank (Yank))
+import Uracil.Paste (uraPaste, uraPasteFor, uraPpaste, uraStopPaste)
 import qualified Uracil.Settings as Settings (pasteTimeout)
-import Uracil.Test.Unit (UracilTest, integrationTestDef, tmuxTestDef)
+import Uracil.Test.Run (uraTest)
 import Uracil.Yank (storeEvent)
 
 item1 :: NonEmpty Text
@@ -48,115 +49,101 @@ yanks =
     item ident =
       Yank ident (Register.Special "*") RegisterType.Line
 
-clearStar :: UracilTest ()
+clearStar ::
+  Member Rpc r =>
+  Sem r ()
 clearStar =
   setregLine starRegister [""]
 
-normalPasteTest :: UracilTest ()
-normalPasteTest = do
-  clearStar
-  vimSetOption "clipboard" (toMsgpack ("unnamed,unnamedplus" :: Text))
-  setL @Env Env.yanks yanks
-  uraPaste
-  checkContent item1
-  (2 ===) . length =<< vimGetWindows
-  uraPaste
-  checkContent item2
-  awaitEqual 1 length vimGetWindows
-  where
-    checkContent item =
-      awaitEqual_ ("" : NonEmpty.toList item) currentBufferContent
-
 test_normalPaste :: UnitTest
 test_normalPaste =
-  tmuxTestDef normalPasteTest
-
-normalPpasteTest :: UracilTest ()
-normalPpasteTest = do
-  clearStar
-  setL @Env Env.yanks yanks
-  uraPpaste
-  checkContent item1
-  (2 ===) . length =<< vimGetWindows
-  uraPpaste
-  checkContent item2
-  await ((1 ===) . length) vimGetWindows
+  uraTest do
+    clearStar
+    atomicModify' (#yanks .~ yanks)
+    uraPaste
+    checkContent item1
+    assertEq 2 . length =<< vimGetWindows
+    uraPaste
+    checkContent item2
+    assertWait vimGetWindows (assertEq 1 . length)
   where
     checkContent item =
-      await ((NonEmpty.toList item ++ [""]) ===) currentBufferContent
+      assertWait currentBufferContent (assertEq ("" : NonEmpty.toList item))
 
 test_normalPpaste :: UnitTest
 test_normalPpaste =
-  tmuxTestDef normalPpasteTest
-
-visualPasteTest :: UracilTest ()
-visualPasteTest = do
-  clearStar
-  setL @Env Env.yanks yanks
-  setCurrentBufferContent ["line1", "word for word", ""]
-  setCurrentCursor 1 5
-  normal "viw"
-  uraPaste
-  checkContent item1
-  uraPaste
-  checkContent item2
-  uraPaste
-  checkContent item3
-  uraPaste
-  checkContent item1
-  (Left (NonEmpty.toList item1) ===) =<< getreg unnamedRegister
+  uraTest do
+    clearStar
+    atomicModify' (#yanks .~ yanks)
+    setCurrentBufferContent ["line1", "line2", ""]
+    setCurrentCursor 1 0
+    uraPpaste
+    checkContent item1
+    assertEq 2 . length =<< vimGetWindows
+    uraPpaste
+    checkContent item2
+    assertWait vimGetWindows (assertEq 1 . length)
   where
     checkContent item =
-      awaitEqual_ ("line1" : "word " : NonEmpty.toList item ++ [" word", ""]) currentBufferContent
+      assertWait currentBufferContent (assertEq ("line1" : NonEmpty.toList item ++ ["line2", ""]))
 
 test_visualPaste :: UnitTest
 test_visualPaste =
-  tmuxTestDef visualPasteTest
+  uraTest do
+    clearStar
+    atomicModify' (#yanks .~ yanks)
+    setCurrentBufferContent ["line1", "word for word", ""]
+    setCurrentCursor 1 5
+    normal "viw"
+    uraPaste
+    checkContent item1
+    uraPaste
+    checkContent item2
+    uraPaste
+    checkContent item3
+    uraPaste
+    checkContent item1
+    (Left (NonEmpty.toList item1) ===) =<< getreg unnamedRegister
+  where
+    checkContent item =
+      assertWait currentBufferContent (assertEq ("line1" : "word " : NonEmpty.toList item ++ [" word", ""]))
 
-cancelWhenCursorMovedTest :: UracilTest ()
-cancelWhenCursorMovedTest = do
-  updateSetting Settings.pasteTimeout 93
-  setL @Env Env.yanks yanks
-  uraPaste
-  (2 ===) . length =<< vimGetWindows
-  doautocmd False "CursorMoved"
-  awaitEqual 1 length vimGetWindows
+test_cancel :: UnitTest
+test_cancel =
+  uraTest do
+    resumeTestError @Settings (Settings.update Settings.pasteTimeout 93)
+    atomicModify' (#yanks .~ yanks)
+    uraPaste
+    (2 ===) . length =<< vimGetWindows
+    uraStopPaste
+    assertWait vimGetWindows (assertEq 1 . length)
 
-test_cancelWhenCursorMoved :: UnitTest
-test_cancelWhenCursorMoved =
-  integrationTestDef cancelWhenCursorMovedTest
-
-syncSelectionTest :: UracilTest ()
-syncSelectionTest = do
-  setL @Env Env.yanks yanks
-  setCurrentBufferContent ["line1", "line2"]
-  setCurrentLine 0
-  setregLine starRegister [extra]
-  uraPaste
-  (["line1", extra, "line2"] ===) =<< currentBufferContent
+test_syncSelection :: UnitTest
+test_syncSelection =
+  uraTest do
+    atomicModify' (#yanks .~ yanks)
+    setCurrentBufferContent ["line1", "line2"]
+    setCurrentLine 0
+    setregLine starRegister [extra]
+    uraPaste
+    (["line1", extra, "line2"] ===) =<< currentBufferContent
   where
     extra =
       "external" :: Text
 
-test_syncSelection :: UnitTest
-test_syncSelection =
-  tmuxTestDef syncSelectionTest
-
-commandPasteTest :: UracilTest ()
-commandPasteTest = do
-  clearStar
-  storeEvent (RegEvent True "y" ["line 1"] unnamedRegister RegisterType.Line)
-  storeEvent (RegEvent True "d" ["line 2"] unnamedRegister RegisterType.Line)
-  setregLine unnamedRegister ["line 2"]
-  uraPasteFor (Just "y")
-  checkContent ["line 1"]
-  where
-    checkContent ls =
-      awaitEqual_ ("" : ls) currentBufferContent
-
 test_commandPaste :: UnitTest
 test_commandPaste =
-  tmuxTestDef commandPasteTest
+  uraTest do
+    clearStar
+    mapHandlerError do
+      storeEvent (RegEvent True "y" ["line 1"] unnamedRegister RegisterType.Line)
+      storeEvent (RegEvent True "d" ["line 2"] unnamedRegister RegisterType.Line)
+    setregLine unnamedRegister ["line 2"]
+    uraPasteFor (Just "y")
+    checkContent ["line 1"]
+  where
+    checkContent ls =
+      assertWait currentBufferContent (assertEq ("" : ls))
 
 test_paste :: TestTree
 test_paste =
@@ -164,7 +151,7 @@ test_paste =
     unitTest "normal mode, paste after" test_normalPaste,
     unitTest "normal mode, paste before" test_normalPpaste,
     unitTest "visual mode" test_visualPaste,
-    unitTest "cancel when cursor moved" test_cancelWhenCursorMoved,
+    unitTest "cancel" test_cancel,
     unitTest "sync the * register" test_syncSelection,
     unitTest "paste from a yank list for a specific command" test_commandPaste
   ]

@@ -1,144 +1,140 @@
 module Uracil.Paste where
 
 import Chiasma.Data.Ident (Ident, generateIdent)
-import Control.Concurrent.Lifted (fork)
+import qualified Chronos
+import qualified Conc as Sync
 import qualified Control.Lens as Lens (view)
-import Data.Hourglass (Elapsed(Elapsed), Seconds(Seconds))
-import Data.String.QM (qt)
+import Control.Lens ((%~), (.~), (?~))
+import Control.Monad.Extra (andM)
+import Data.Generics.Labels ()
+import Data.List (notElem)
 import qualified Data.Text as Text (isInfixOf)
+import Exon (exon)
+import qualified Log
+import Polysemy.Chronos (ChronosTime)
+import Polysemy.Time (Seconds)
 import Ribosome.Api.Mode (visualModeActive)
 import Ribosome.Api.Normal (noautocmdNormal, normal)
 import Ribosome.Api.Register (getregList, getregtype, unnamedRegister)
 import Ribosome.Api.Undo (undo)
 import Ribosome.Api.Window (redraw)
-import Ribosome.Config.Setting (setting)
-import Ribosome.Control.Lock (lockOrSkip, lockOrWait)
 import Ribosome.Data.Register (Register, registerRepr)
-import qualified Ribosome.Data.Register as Register (Register(..))
+import qualified Ribosome.Data.Register as Register (Register (..))
+import qualified Ribosome.Data.ScratchState as ScratchState
 import Ribosome.Data.SettingError (SettingError)
-import Ribosome.Msgpack.Error (DecodeError)
-import Ribosome.Nvim.Api.IO (vimGetOption)
-import System.Hourglass (timeCurrent)
+import Ribosome.Effect.Scratch (Scratch)
+import qualified Ribosome.Effect.Settings as Settings
+import Ribosome.Effect.Settings (Settings)
+import Ribosome.Host (Rpc, RpcError)
+import Ribosome.Host.Api.Effect (vimGetOption)
+import Ribosome.Host.Data.HandlerError (HandlerError, mapHandlerError, resumeHandlerError)
+import Ribosome.Host.Data.RpcHandler (Handler)
+import Ribosome.Locks (lockOrSkip)
+import qualified Time
 
 import qualified Uracil.Data.Env as Env
 import Uracil.Data.Env (Env)
-import Uracil.Data.Paste (Paste(Paste))
+import Uracil.Data.Paste (Paste (Paste))
+import Uracil.Data.PasteLock (PasteLock (PasteLock))
 import Uracil.Data.Yank (Yank)
 import qualified Uracil.Data.Yank as Yank (content)
 import Uracil.Data.YankCommand (YankCommand)
 import Uracil.Data.YankError (YankError)
-import qualified Uracil.Data.YankError as YankError (YankError(EmptyHistory))
+import qualified Uracil.Data.YankError as YankError (YankError (EmptyHistory))
 import qualified Uracil.Settings as Settings (pasteTimeout)
-import Uracil.Yank (allYanks, loadYank, setCommands, storeYank, yankByIdent, yankByIndex, yanks)
+import Uracil.Yank (allYanks, loadYank, setCommand, storeYank, yankByIdent, yankByIndex, yanks)
 import Uracil.YankScratch (ensureYankScratch, killYankScratch, selectYankInScratch)
 
 defaultRegister ::
-  NvimE e m =>
-  m Register
+  Member Rpc r =>
+  Sem r Register
 defaultRegister =
   Register.Special . decide <$> vimGetOption "clipboard"
   where
     decide "unnamed" =
       "*"
-    decide a | "unnamedplus" `Text.isInfixOf` a =
+    decide a | Text.isInfixOf "unnamedplus" a =
       "+"
     decide _ =
       "\""
 
 pasteWith ::
-  MonadRibo m =>
-  NvimE e m =>
+  Members [Rpc !! e, Rpc, Log] r =>
   Text ->
   Yank ->
-  m ()
+  Sem r ()
 pasteWith cmd yank = do
   register <- defaultRegister
   loadYank register yank
-  ignoreError @RpcError $ noautocmdNormal (registerRepr register <> cmd)
+  resume_ (noautocmdNormal (registerRepr register <> cmd))
   loadYank unnamedRegister yank
 
 paste ::
-  MonadRibo m =>
-  NvimE e m =>
+  Members [Rpc !! e, Rpc, Log] r =>
   Yank ->
-  m ()
+  Sem r ()
 paste =
   pasteWith "p"
 
 ppaste ::
-  MonadRibo m =>
-  NvimE e m =>
+  Members [Rpc !! e, Rpc, Log] r =>
   Yank ->
-  m ()
+  Sem r ()
 ppaste =
   pasteWith "P"
 
 pasteIdent ::
-  MonadRibo m =>
-  NvimE e m =>
-  MonadDeepState s Env m =>
-  MonadDeepError e YankError m =>
+  Members [AtomicState Env, Rpc !! e, Rpc, Log, Stop YankError] r =>
   Ident ->
-  m ()
+  Sem r ()
 pasteIdent =
   paste <=< yankByIdent
 
 ppasteIdent ::
-  MonadRibo m =>
-  NvimE e m =>
-  MonadDeepState s Env m =>
-  MonadDeepError e YankError m =>
+  Members [AtomicState Env, Rpc !! e, Rpc, Log, Stop YankError] r =>
   Ident ->
-  m ()
+  Sem r ()
 ppasteIdent =
   ppaste <=< yankByIdent
 
 currentPaste ::
-  MonadDeepState s Env m =>
-  m (Maybe Paste)
+  Member (AtomicState Env) r =>
+  Sem r (Maybe Paste)
 currentPaste =
-  getL @Env Env.paste
+  atomicGets Env.paste
 
 pasteActive ::
-  MonadDeepState s Env m =>
-  m Bool
+  Member (AtomicState Env) r =>
+  Sem r Bool
 pasteActive =
   isJust <$> currentPaste
 
-now ::
-  MonadIO m =>
-  m Elapsed
-now =
-  liftIO timeCurrent
-
 pasteHasTimedOut ::
-  MonadIO m =>
-  Int ->
-  Elapsed ->
-  m Bool
+  Member ChronosTime r =>
+  Seconds ->
+  Chronos.Time ->
+  Sem r Bool
 pasteHasTimedOut timeout updated = do
-  n <- now
-  return $ (n - updated) >= Elapsed (Seconds (fromIntegral timeout))
+  diff <- Time.since updated
+  pure (diff >= timeout)
 
 shouldCancelPaste ::
-  NvimE e m =>
-  MonadRibo m =>
-  MonadDeepState s Env m =>
-  Int ->
+  Members [AtomicState Env, ChronosTime] r =>
+  Seconds ->
   Ident ->
-  m Bool
+  Sem r Bool
 shouldCancelPaste timeout ident =
-  fmap (fromMaybe False) <$> traverse check =<< getL @Env Env.paste
+  fmap (fromMaybe False) <$> traverse check =<< currentPaste
   where
     check (Paste pasteIdent' _ updated _ _) =
-      andM @[] [pasteHasTimedOut timeout updated, pure $ ident == pasteIdent']
+      andM [pasteHasTimedOut timeout updated, pure $ ident == pasteIdent']
 
 moveYankToHistoryHead ::
-  MonadDeepState s Env m =>
+  Member (AtomicState Env) r =>
   Int ->
-  m ()
+  Sem r ()
 moveYankToHistoryHead index =
-  modifyL @Env Env.yanks move
+  atomicModify' (#yanks %~ move)
   where
     move ys =
       take 1 post <> pre <> drop 1 post
@@ -146,236 +142,194 @@ moveYankToHistoryHead index =
         (pre, post) = splitAt index ys
 
 movePastedToHistoryHead ::
-  MonadDeepState s Env m =>
-  m ()
+  Member (AtomicState Env) r =>
+  Sem r ()
 movePastedToHistoryHead =
-  traverse_ move =<< getL @Env Env.paste
-  where
-    move (Paste _ index _ _ _) =
-      moveYankToHistoryHead index
+  currentPaste >>= traverse_ \ (Paste _ index _ _ _) ->
+    moveYankToHistoryHead index
 
 cancelPaste ::
-  NvimE e m =>
-  MonadRibo m =>
-  MonadDeepState s Env m =>
-  m ()
-cancelPaste =
-  movePastedToHistoryHead *>
-  setL @Env Env.paste Nothing *>
-  killYankScratch *>
-  setCommands Nothing
+  Members [Scratch, AtomicState Env, Log] r =>
+  Sem r ()
+cancelPaste = do
+  Log.debug "cancelling paste"
+  movePastedToHistoryHead
+  atomicModify' (#paste .~ Nothing)
+  killYankScratch
+  setCommand Nothing
 
 cancelPasteAfter ::
-  NvimE e m =>
-  MonadRibo m =>
-  MonadDeepState s Env m =>
-  Int ->
+  Members [Scratch, AtomicState Env, ChronosTime, Log] r =>
+  Seconds ->
   Ident ->
-  m ()
+  Sem r ()
 cancelPasteAfter timeout ident =
   whenM (shouldCancelPaste timeout ident) cancelPaste
 
 waitAndCancelPaste ::
-  MonadRibo m =>
-  NvimE e m =>
-  MonadDeepError e SettingError m =>
-  MonadDeepState s Env m =>
+  Members [Scratch, AtomicState Env, ChronosTime, Log] r =>
+  Member Settings r =>
   Ident ->
-  m ()
+  Sem r ()
 waitAndCancelPaste ident = do
-  duration <- setting Settings.pasteTimeout
-  sleep (fromIntegral duration)
+  duration <- Settings.get Settings.pasteTimeout
+  Time.sleep duration
   cancelPasteAfter duration ident
 
-logUpdatePaste ::
-  MonadRibo m =>
-  Text ->
+logPaste ::
+  Member Log r =>
   Bool ->
-  Text ->
-  m ()
-logUpdatePaste index visual yank =
-  logDebug [qt|repasting with index ${index} in ${visualT} mode: ${yank} |]
-  where
-    visualT :: Text
-    visualT = if visual then "visual" else "normal"
-
-updatePaste ::
-  NvimE e m =>
-  MonadRibo m =>
-  MonadBaseControl IO m =>
-  MonadDeepError e SettingError m =>
-  MonadDeepError e DecodeError m =>
-  MonadDeepError e YankError m =>
-  MonadDeepState s Env m =>
-  (Yank -> m ()) ->
   Int ->
-  m ()
-updatePaste paster index = do
+  Bool ->
+  Yank ->
+  Sem r ()
+logPaste update index visual yank =
+  Log.debug [exon|#{action} in #{visualT} mode: #{show yank}|]
+  where
+    action =
+      if update then [exon|repasting with index #{show index}|] else "starting paste"
+    visualT =
+      if visual then "visual" else "normal"
+
+insertPaste ::
+  Members [Scratch, AtomicState Env, Stop YankError, Stop HandlerError, Log, ChronosTime, Async, Embed IO] r =>
+  Members [Settings, Rpc] r =>
+  Bool ->
+  (Yank -> Sem r ()) ->
+  Int ->
+  Sem r ()
+insertPaste isUpdate paster index = do
   visual <- visualModeActive
   yank <- yankByIndex index
-  logUpdatePaste (show (index + 1)) visual (show yank)
+  logPaste isUpdate index visual yank
   paster yank
   scratch <- ensureYankScratch
-  updated <- now
+  updated <- Time.now
   ident <- generateIdent
-  setL @Env Env.paste $ Just $ Paste ident index updated scratch visual
+  atomicModify' (#paste ?~ Paste ident index updated (ScratchState.id scratch) visual)
   selectYankInScratch scratch index
   redraw
-  void $ fork (waitAndCancelPaste ident)
+  void (async (waitAndCancelPaste ident))
 
 pullRegister ::
-  NvimE e m =>
-  MonadRibo m =>
-  MonadDeepState s Env m =>
+  Members [Rpc, AtomicState Env, Log, Embed IO] r =>
   Register ->
   NonEmpty Text ->
-  m ()
+  Sem r ()
 pullRegister register content = do
   tpe <- getregtype register
   storeYank tpe register "y" content
 
 fetchClipboard ::
-  NvimE e m =>
-  MonadRibo m =>
-  MonadDeepState s Env m =>
+  Members [Rpc, AtomicState Env, Log, Embed IO] r =>
   [NonEmpty Text] ->
   Maybe (NonEmpty Text) ->
   Register ->
-  m ()
+  Sem r ()
 fetchClipboard lastTwoYanks skip reg =
-  traverse_ check =<< nonEmpty <$> getregList reg
+  traverse_ check . nonEmpty =<< getregList reg
   where
     check content =
       when (freshYank content) (pullRegister reg content)
     freshYank a =
-      a /= ("" :| []) && (a `notElem` lastTwoYanks) && (a `notElem` skip)
+      a /= ("" :| []) && notElem a lastTwoYanks && notElem a skip
 
 syncClipboard ::
-  NvimE e m =>
-  MonadRibo m =>
-  MonadDeepState s Env m =>
-  m ()
+  Members [Rpc, AtomicState Env, Log, Embed IO] r =>
+  Sem r ()
 syncClipboard = do
-  lastTwoYanks <- take 2 <$> fmap (Lens.view Yank.content) <$> allYanks
-  skip <- getL @Env Env.skip
-  setL @Env Env.skip Nothing
+  lastTwoYanks <- take 2 . fmap (Lens.view Yank.content) <$> allYanks
+  skip <- atomicGets Env.skip
+  atomicModify' (#skip .~ Nothing)
   traverse_ @[] (fetchClipboard lastTwoYanks skip) [Register.Special "*", Register.Special "\""]
 
 repaste ::
-  NvimE e m =>
-  MonadRibo m =>
-  MonadBaseControl IO m =>
-  MonadDeepError e SettingError m =>
-  MonadDeepError e DecodeError m =>
-  MonadDeepError e YankError m =>
-  MonadDeepState s Env m =>
-  (Yank -> m ()) ->
+  Members [Scratch, AtomicState Env, Stop YankError, Stop HandlerError, Log, ChronosTime, Async, Embed IO] r =>
+  Members [Settings, Rpc] r =>
+  (Yank -> Sem r ()) ->
   Paste ->
-  m ()
+  Sem r ()
 repaste paster (Paste _ index _ _ visual) = do
   count <- length <$> yanks
   if count > 0
   then run count
-  else throwHoist YankError.EmptyHistory
+  else stop YankError.EmptyHistory
   where
-    run count =
-      undo *>
-      reset *>
-      updatePaste paster ((index + 1) `mod` count)
+    run count = do
+      undo
+      reset
+      insertPaste True paster (fromMaybe 0 (mod (index + 1) count))
     reset =
       when visual (normal "gv")
 
 startPaste ::
-  NvimE e m =>
-  MonadRibo m =>
-  MonadBaseControl IO m =>
-  MonadDeepError e SettingError m =>
-  MonadDeepError e DecodeError m =>
-  MonadDeepError e YankError m =>
-  MonadDeepState s Env m =>
+  Members [Scratch, AtomicState Env, Stop YankError, Stop HandlerError, Log, ChronosTime, Async, Embed IO] r =>
+  Members [Settings, Rpc] r =>
   Maybe YankCommand ->
-  (Yank -> m ()) ->
-  m ()
-startPaste commands paster =
+  (Yank -> Sem r ()) ->
+  Sem r ()
+startPaste command paster =
   killYankScratch *>
   syncClipboard *>
-  setCommands commands *>
-  updatePaste paster 0
+  setCommand command *>
+  insertPaste False paster 0
 
-lockName :: Text
-lockName =
-  "uracil-paste"
+type PasteStack =
+  [
+    Scratch !! RpcError,
+    Settings !! SettingError,
+    Rpc !! RpcError,
+    Sync PasteLock,
+    Resource,
+    AtomicState Env,
+    Log,
+    ChronosTime,
+    Async,
+    Embed IO
+  ]
 
 pasteRequest ::
-  NvimE e m =>
-  MonadRibo m =>
-  MonadBaseControl IO m =>
-  MonadDeepError e SettingError m =>
-  MonadDeepError e DecodeError m =>
-  MonadDeepError e YankError m =>
-  MonadDeepState s Env m =>
+  Members PasteStack r =>
   Maybe YankCommand ->
-  (Yank -> m ()) ->
-  m ()
+  (Yank -> Sem (Stop YankError : Scratch : Settings : Rpc : Stop HandlerError : r) ()) ->
+  Handler r ()
 pasteRequest commands paster =
-  lockOrWait lockName do
+  resumeHandlerError @Rpc $
+  resumeHandlerError @Settings $
+  resumeHandlerError @Scratch $
+  mapHandlerError @YankError $
+  Sync.lock PasteLock do
     maybe (startPaste commands paster) (repaste paster) =<< currentPaste
 
 uraPasteFor ::
-  NvimE e m =>
-  MonadRibo m =>
-  MonadBaseControl IO m =>
-  MonadDeepError e SettingError m =>
-  MonadDeepError e DecodeError m =>
-  MonadDeepError e YankError m =>
-  MonadDeepState s Env m =>
+  Members PasteStack r =>
   Maybe YankCommand ->
-  m ()
+  Handler r ()
 uraPasteFor commands =
   pasteRequest commands paste
 
 uraPpasteFor ::
-  NvimE e m =>
-  MonadRibo m =>
-  MonadBaseControl IO m =>
-  MonadDeepError e SettingError m =>
-  MonadDeepError e DecodeError m =>
-  MonadDeepError e YankError m =>
-  MonadDeepState s Env m =>
+  Members PasteStack r =>
   Maybe YankCommand ->
-  m ()
+  Handler r ()
 uraPpasteFor commands =
   pasteRequest commands ppaste
 
 uraPaste ::
-  NvimE e m =>
-  MonadRibo m =>
-  MonadBaseControl IO m =>
-  MonadDeepError e SettingError m =>
-  MonadDeepError e DecodeError m =>
-  MonadDeepError e YankError m =>
-  MonadDeepState s Env m =>
-  m ()
+  Members PasteStack r =>
+  Handler r ()
 uraPaste =
   pasteRequest Nothing paste
 
 uraPpaste ::
-  NvimE e m =>
-  MonadRibo m =>
-  MonadBaseControl IO m =>
-  MonadDeepError e SettingError m =>
-  MonadDeepError e DecodeError m =>
-  MonadDeepError e YankError m =>
-  MonadDeepState s Env m =>
-  m ()
+  Members PasteStack r =>
+  Handler r ()
 uraPpaste =
   pasteRequest Nothing ppaste
 
 uraStopPaste ::
-  NvimE e m =>
-  MonadRibo m =>
-  MonadBaseControl IO m =>
-  MonadDeepState s Env m =>
-  m ()
+  Members [Scratch !! RpcError, AtomicState Env, Sync PasteLock, Resource, Log] r =>
+  Handler r ()
 uraStopPaste =
-  lockOrSkip lockName $ whenM pasteActive cancelPaste
+  resumeHandlerError @Scratch $
+  void (lockOrSkip @PasteLock (whenM pasteActive cancelPaste))
