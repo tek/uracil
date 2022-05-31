@@ -10,11 +10,11 @@ snippets to the user.
 # Install
 
 This plugin depends on the Haskell plugin manager [chromatin] and [nix].
-To install, request both *chromatin* and *proteome* from your Neovim plugin manager:
+To install, request both *chromatin* and *uracil* from your Neovim plugin manager:
 
 ```vim
 Plug 'tek/chromatin'
-Plug 'tek/proteome'
+Plug 'tek/uracil'
 ```
 
 # Recommended Mappings

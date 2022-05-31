@@ -6526,11 +6526,11 @@
         "polysemy-test": "polysemy-test"
       },
       "locked": {
-        "lastModified": 1653955821,
-        "narHash": "sha256-2bq8Oxkxz8jve0jc/iBWxq4KM6Bxr7Zvp3/h9z420uM=",
+        "lastModified": 1654124492,
+        "narHash": "sha256-P3AR0xo3+3wAppFIDK5O1XaR7PqyiiSJ8Yt2ul1vghk=",
         "ref": "polysemy",
-        "rev": "7df1214249aef5d5b0135badf75588c33e075914",
-        "revCount": 481,
+        "rev": "6ab9f507ec48a8454873f03ebac021a743d73056",
+        "revCount": 482,
         "type": "git",
         "url": "https://gitlab.tryp.io/haskell/ribosome"
       },

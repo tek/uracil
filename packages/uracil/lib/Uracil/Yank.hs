@@ -8,7 +8,7 @@ import Exon (exon)
 import qualified Log
 import Ribosome.Api.Register (setregAs)
 import Ribosome.Data.Register (Register)
-import qualified Ribosome.Data.Register as Register (Register (Empty, Special))
+import qualified Ribosome.Data.Register as Register
 import qualified Ribosome.Data.RegisterType as RegisterType
 import Ribosome.Data.RegisterType (RegisterType)
 import Ribosome.Data.SettingError (SettingError)

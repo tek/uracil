@@ -1,7 +1,10 @@
 module Uracil.Plugin where
 
-import Conc (interpretAtomic, interpretSyncAs)
+import Conc (interpretAtomic, interpretSyncAs, withAsync_)
+import Exon (exon)
+import qualified Log
 import Ribosome.Data.PluginConfig (PluginConfig (PluginConfig))
+import Ribosome.Host (Rpc, RpcError (RpcError))
 import Ribosome.Host.Data.Execution (Execution (Async))
 import Ribosome.Host.Data.RpcHandler (RpcHandler)
 import Ribosome.Host.Effect.Errors (Errors)
@@ -11,7 +14,7 @@ import Ribosome.Remote (runNvimPluginIO)
 import Uracil.Data.Env (Env)
 import Uracil.Data.PasteLock (PasteLock (PasteLock))
 import Uracil.Diag (uraDiag)
-import Uracil.Paste (PasteStack, uraPaste, uraPasteFor, uraPpaste, uraPpasteFor, uraStopPaste)
+import Uracil.Paste (PasteStack, syncClipboard, uraPaste, uraPasteFor, uraPpaste, uraPpasteFor, uraStopPaste)
 import Uracil.Yank (uraYank)
 import Uracil.YankMenu (uraYankMenu, uraYankMenuFor)
 
@@ -43,12 +46,18 @@ handlers =
     rpcAutocmd "UraStopPaste" "CursorMoved" def uraStopPaste
   ]
 
+prepare ::
+  Members [Rpc !! RpcError, AtomicState Env, Log, Embed IO] r =>
+  Sem r ()
+prepare =
+  syncClipboard !! \ (RpcError e) -> Log.error [exon|Couldn't sync the clipboard: #{e}|]
+
 interpretUracilStack ::
-  Members [Race, Embed IO] r =>
+  Members [Rpc !! RpcError, Race, Log, Resource, Async, Embed IO] r =>
   InterpretersFor UracilStack r
-interpretUracilStack =
-  interpretAtomic def .
-  interpretSyncAs PasteLock
+interpretUracilStack sem =
+  interpretAtomic def $ interpretSyncAs PasteLock do
+    withAsync_ prepare sem
 
 uracil :: IO ()
 uracil =

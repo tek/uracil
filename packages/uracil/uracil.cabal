@@ -33,7 +33,6 @@ library
       Uracil.Data.YankCommand
       Uracil.Data.YankError
       Uracil.Diag
-      Uracil.Init
       Uracil.Paste
       Uracil.Plugin
       Uracil.Settings
