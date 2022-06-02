@@ -5,16 +5,20 @@ import Data.Generics.Labels ()
 import qualified Data.Map.Strict as Map
 import Exon (exon)
 import Prettyprinter (Doc, line, nest, pretty, vsep)
-import Ribosome.Data.ScratchOptions (defaultScratchOptions)
-import Ribosome.Data.Syntax (HiLink (..), Syntax (Syntax), SyntaxItem (..), syntaxMatch)
-import qualified Ribosome.Effect.Scratch as Scratch
-import Ribosome.Effect.Scratch (Scratch)
-import Ribosome.Host (RpcError)
-import Ribosome.Host.Data.HandlerError (ErrorMessage (ErrorMessage), HandlerTag (GlobalTag, HandlerTag), resumeHandlerError)
-import Ribosome.Host.Data.RpcHandler (Handler)
-import Ribosome.Host.Data.StoredError (StoredError (StoredError))
-import qualified Ribosome.Host.Effect.Errors as Errors
-import Ribosome.Host.Effect.Errors (Errors)
+import Ribosome (
+  ErrorMessage (ErrorMessage),
+  Errors,
+  Handler,
+  HandlerTag (GlobalTag, HandlerTag),
+  RpcError,
+  Scratch,
+  StoredError (StoredError),
+  defaultScratchOptions,
+  resumeHandlerError,
+  )
+import qualified Ribosome.Errors as Errors
+import qualified Ribosome.Scratch as Scratch
+import Ribosome.Syntax (HiLink (..), Syntax (Syntax), SyntaxItem (..), syntaxMatch)
 
 import qualified Uracil.Data.Env as Env
 import Uracil.Data.Env (Env)

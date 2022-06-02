@@ -2,12 +2,11 @@ module Uracil.Data.Yank where
 
 import Chiasma.Data.Ident (Ident, Identifiable (..))
 import Control.Lens (makeClassy)
-import Ribosome.Data.Register (Register)
-import Ribosome.Data.RegisterType (RegisterType)
+import qualified Data.List.NonEmpty as NonEmpty
+import Prettyprinter (Pretty (pretty), nest, vsep, (<+>))
+import Ribosome (Register, RegisterType)
 
 import Uracil.Data.YankCommand (YankCommand (YankCommand))
-import Prettyprinter (Pretty(pretty), nest, vsep, (<+>))
-import qualified Data.List.NonEmpty as NonEmpty
 
 data Yank =
   Yank {

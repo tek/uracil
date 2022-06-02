@@ -4,19 +4,22 @@ import qualified Chiasma.Data.Ident as Ident (Ident (Str))
 import Control.Lens ((.~))
 import qualified Data.List.NonEmpty as NonEmpty (toList)
 import Polysemy.Test (UnitTest, assertEq, unitTest, (===))
-import Ribosome.Api.Buffer (currentBufferContent, setCurrentBufferContent)
-import Ribosome.Api.Normal (normal)
-import Ribosome.Api.Register (getreg, setregLine, starRegister, unnamedRegister)
-import Ribosome.Api.Window (setCurrentCursor, setCurrentLine)
-import qualified Ribosome.Data.Register as Register (Register (Special))
-import qualified Ribosome.Data.RegisterType as RegisterType (RegisterType (Line))
-import qualified Ribosome.Effect.Settings as Settings
-import Ribosome.Effect.Settings (Settings)
-import Ribosome.Host (Rpc)
-import Ribosome.Host.Api.Effect (vimGetWindows)
-import Ribosome.Host.Data.HandlerError (mapHandlerError)
-import Ribosome.Test.Error (resumeTestError)
-import Ribosome.Test.Wait (assertWait)
+import Ribosome (Rpc, Settings, mapHandlerError)
+import Ribosome.Api (
+  currentBufferContent,
+  getreg,
+  normal,
+  setCurrentBufferContent,
+  setCurrentCursor,
+  setCurrentLine,
+  setregLine,
+  starRegister,
+  unnamedRegister,
+  vimGetWindows,
+  )
+import qualified Ribosome.Register as Register (Register (Special), RegisterType (Line))
+import qualified Ribosome.Settings as Settings
+import Ribosome.Test (assertWait, resumeTestError)
 import Test.Tasty (TestTree, testGroup)
 
 import Uracil.Data.RegEvent (RegEvent (RegEvent))
@@ -47,7 +50,7 @@ yanks =
   ]
   where
     item ident =
-      Yank ident (Register.Special "*") RegisterType.Line
+      Yank ident (Register.Special "*") Register.Line
 
 clearStar ::
   Member Rpc r =>
@@ -136,8 +139,8 @@ test_commandPaste =
   uraTest do
     clearStar
     mapHandlerError do
-      storeEvent (RegEvent True "y" ["line 1"] unnamedRegister RegisterType.Line)
-      storeEvent (RegEvent True "d" ["line 2"] unnamedRegister RegisterType.Line)
+      storeEvent (RegEvent True "y" ["line 1"] unnamedRegister Register.Line)
+      storeEvent (RegEvent True "d" ["line 2"] unnamedRegister Register.Line)
     setregLine unnamedRegister ["line 2"]
     uraPasteFor (Just "y")
     checkContent ["line 1"]

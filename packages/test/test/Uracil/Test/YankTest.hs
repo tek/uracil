@@ -1,10 +1,8 @@
 module Uracil.Test.YankTest where
 
 import Polysemy.Test (UnitTest)
-import Ribosome.Api.Buffer (setCurrentBufferContent)
-import Ribosome.Api.Window (setCurrentLine)
-import Ribosome.Host.Api.Effect (vimCommand)
-import Ribosome.Host.Test.Run (embedTest_)
+import Ribosome.Api (setCurrentBufferContent, setCurrentLine, vimCommand)
+import Ribosome.Test (embedTest_)
 
 lines' :: [Text]
 lines' =

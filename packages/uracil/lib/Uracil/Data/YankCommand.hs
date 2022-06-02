@@ -1,7 +1,6 @@
 module Uracil.Data.YankCommand where
 
-import Ribosome.Host.Class.Msgpack.Decode (MsgpackDecode)
-import Ribosome.Host.Class.Msgpack.Encode (MsgpackEncode)
+import Ribosome (MsgpackDecode, MsgpackEncode)
 
 newtype YankCommand =
   YankCommand { unYankCommand :: Text }

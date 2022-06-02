@@ -5,15 +5,10 @@ import Conc (interpretAtomic, interpretMaskFinal)
 import Control.Lens ((.~))
 import qualified Data.List.NonEmpty as NonEmpty (toList)
 import Polysemy.Test (TestError, UnitTest, unitTest, (===))
-import Ribosome.Api.Buffer (currentBufferContent, setCurrentBufferContent)
-import Ribosome.Api.Input (withInput)
-import Ribosome.Api.Register (getreg, unnamedRegister)
-import Ribosome.Api.Window (setCurrentLine)
-import qualified Ribosome.Data.Register as Register (Register (Special))
-import qualified Ribosome.Data.RegisterType as RegisterType (RegisterType (Line))
-import Ribosome.Host (Rpc)
-import Ribosome.Test.Error (resumeTestError, testHandler)
-import Ribosome.Test.Run (embedPluginTest_)
+import Ribosome (Rpc)
+import Ribosome.Api (currentBufferContent, getreg, setCurrentBufferContent, setCurrentLine, unnamedRegister, withInput)
+import qualified Ribosome.Register as Register
+import Ribosome.Test (embedPluginTest_, resumeTestError, testHandler)
 import Test.Tasty (TestTree, testGroup)
 
 import Uracil.Data.Yank (Yank (Yank))
@@ -34,7 +29,7 @@ items =
     ]
   where
     item ident =
-      Yank ident (Register.Special "*") RegisterType.Line "y"
+      Yank ident (Register.Special "*") Register.Line "y"
 
 yankMenuTest ::
   Members (YankMenuStack res) r =>

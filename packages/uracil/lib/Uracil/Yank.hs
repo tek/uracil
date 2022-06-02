@@ -6,18 +6,10 @@ import Data.List (nub)
 import qualified Data.Text as Text
 import Exon (exon)
 import qualified Log
-import Ribosome.Api.Register (setregAs)
-import Ribosome.Data.Register (Register)
-import qualified Ribosome.Data.Register as Register
-import qualified Ribosome.Data.RegisterType as RegisterType
-import Ribosome.Data.RegisterType (RegisterType)
-import Ribosome.Data.SettingError (SettingError)
-import qualified Ribosome.Effect.Settings as Settings
-import Ribosome.Effect.Settings (Settings)
-import Ribosome.Host (Rpc, RpcError)
-import Ribosome.Host.Api.Effect (vimGetVvar)
-import Ribosome.Host.Data.HandlerError (mapHandlerError)
-import Ribosome.Host.Data.RpcHandler (Handler)
+import Ribosome (Handler, Register, RegisterType, Rpc, RpcError, SettingError, Settings, mapHandlerError)
+import Ribosome.Api (setregAs, vimGetVvar)
+import qualified Ribosome.Register as Register
+import qualified Ribosome.Settings as Settings
 
 import qualified Uracil.Data.Env as Env
 import Uracil.Data.Env (Env)
@@ -103,7 +95,7 @@ matchOperator (Just (YankCommand ops)) (Yank _ _ regtype (YankCommand op) lines'
   effective `Text.isInfixOf` ops
   where
     effective =
-      if op == "d" && regtype == RegisterType.Character && (Text.length <$> lines') == 1 :| []
+      if op == "d" && regtype == Register.Character && (Text.length <$> lines') == 1 :| []
       then "x"
       else op
 

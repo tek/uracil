@@ -6,23 +6,22 @@ import Control.Lens (use)
 import qualified Data.Map.Strict as Map (fromList)
 import qualified Data.Text as Text (length, take)
 import Polysemy.Chronos (ChronosTime)
-import Ribosome.Data.SettingError (SettingError)
-import Ribosome.Effect.Scratch (Scratch)
-import Ribosome.Effect.Settings (Settings)
-import Ribosome.Host (Rpc, RpcError)
-import Ribosome.Host.Api.Effect (vimGetCurrentWindow, windowGetWidth)
-import Ribosome.Host.Data.HandlerError (mapHandlerError, resumeHandlerError)
-import Ribosome.Host.Data.RpcHandler (Handler)
-import Ribosome.Menu.Action (menuSuccess)
-import qualified Ribosome.Menu.Consumer as Consumer
-import Ribosome.Menu.Consumer (Mappings)
-import Ribosome.Menu.Data.MenuConsumer (MenuWidget)
-import Ribosome.Menu.Data.MenuItem (MenuItem (MenuItem), simpleMenuItem)
-import Ribosome.Menu.Data.MenuState (menuRead, semState)
-import Ribosome.Menu.Filters (fuzzyItemFilter)
-import Ribosome.Menu.ItemLens (focus)
-import Ribosome.Menu.Prompt (defaultPrompt)
-import Ribosome.Menu.Run (staticNvimMenuWith)
+import Ribosome (Handler, Rpc, RpcError, Scratch, SettingError, Settings, mapHandlerError, resumeHandlerError)
+import Ribosome.Api (vimGetCurrentWindow, windowGetWidth)
+import qualified Ribosome.Menu as Menu
+import Ribosome.Menu (
+  Mappings,
+  MenuItem (MenuItem),
+  MenuWidget,
+  defaultPrompt,
+  focus,
+  fuzzyItemFilter,
+  menuRead,
+  menuSuccess,
+  semState,
+  simpleMenuItem,
+  staticNvimMenuWith,
+  )
 
 import Uracil.Data.Env (Env)
 import Uracil.Data.Yank (Yank (Yank))
@@ -106,7 +105,7 @@ uraYankMenuFor operators = do
     void (staticNvimMenuWith (fuzzyItemFilter False) def (toList items) consumer promptConfig)
   where
     consumer =
-      Consumer.withMappings yankMenuMappings
+      Menu.withMappings yankMenuMappings
 
 uraYankMenu ::
   Members (YankMenuStack res) r =>

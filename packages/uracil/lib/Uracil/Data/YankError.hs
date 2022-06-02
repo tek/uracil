@@ -2,7 +2,7 @@ module Uracil.Data.YankError where
 
 import Chiasma.Data.Ident (Ident)
 import Log (Severity (Debug, Error, Info))
-import Ribosome.Host.Data.HandlerError (ErrorMessage (ErrorMessage), ToErrorMessage (toErrorMessage))
+import Ribosome (ErrorMessage (ErrorMessage), ToErrorMessage (toErrorMessage))
 
 data YankError =
   EmptyHistory

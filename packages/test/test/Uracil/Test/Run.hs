@@ -2,11 +2,8 @@ module Uracil.Test.Run where
 
 import Log (Severity (Debug))
 import Polysemy.Test (UnitTest)
-import Ribosome.Embed (PluginStack, TestEffects, interpretPlugin, testPlugin)
-import Ribosome.Host.Data.HandlerError (HandlerError)
-import Ribosome.Host.Data.HostConfig (HostConfig, log, logLevelStderr)
-import Ribosome.Host.Test.Run (TestStack, runTestConf)
-import Ribosome.Test.Error (testHandler)
+import Ribosome (HandlerError, HostConfig, interpretPlugin, setStderr, testPlugin)
+import Ribosome.Test (PluginStack, TestEffects, TestStack, runTestConf, testHandler)
 
 import Uracil.Plugin (UracilStack, interpretUracilStack)
 
@@ -34,4 +31,4 @@ uraTestDebug ::
   Sem UraTestStack () ->
   UnitTest
 uraTestDebug =
-  uraTestConf def { log = def { logLevelStderr = Debug} }
+  uraTestConf (setStderr Debug def)

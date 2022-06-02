@@ -7,18 +7,20 @@ import qualified Data.List.NonEmpty as NonEmpty (toList)
 import qualified Data.Map.Strict as Map (fromList)
 import qualified Data.Text as Text (length)
 import Exon (exon)
-import Ribosome.Api.Window (currentCursor, setLine)
-import qualified Ribosome.Data.FloatOptions as FloatOptions
-import Ribosome.Data.ScratchId (ScratchId)
-import Ribosome.Data.ScratchOptions (ScratchOptions, defaultScratchOptions)
-import qualified Ribosome.Data.ScratchState as ScratchState
-import Ribosome.Data.ScratchState (ScratchState)
-import qualified Ribosome.Effect.Scratch as Scratch
-import Ribosome.Effect.Scratch (Scratch)
-import Ribosome.Host (Rpc)
+import Ribosome (
+  HandlerError,
+  Rpc,
+  Scratch,
+  ScratchId,
+  ScratchOptions,
+  ScratchState,
+  defaultScratchOptions,
+  msgpackArray,
+  )
+import Ribosome.Api (currentCursor, setLine)
+import qualified Ribosome.Float as Float
 import Ribosome.Host.Api.Effect (vimCallFunction, windowSetOption)
-import Ribosome.Host.Class.Msgpack.Array (MsgpackArray (msgpackArray))
-import Ribosome.Host.Data.HandlerError (HandlerError)
+import qualified Ribosome.Scratch as Scratch
 
 import qualified Uracil.Data.Env as Env (paste)
 import Uracil.Data.Env (Env)
@@ -95,10 +97,10 @@ yankScratchOptions lines' row col =
   where
     float =
       def {
-        FloatOptions.relative = FloatOptions.Win,
-        FloatOptions.width = width,
-        FloatOptions.height = height,
-        FloatOptions.bufpos = Just (row, col)
+        Float.relative = Float.Win,
+        Float.width = width,
+        Float.height = height,
+        Float.bufpos = Just (row, col)
       }
     width =
       min 40 (maximum (Text.length <$> lines')) + 5
@@ -112,8 +114,8 @@ showYankScratch = do
   lines' <- yankLines
   (row, col) <- currentCursor
   scratch <- Scratch.show (NonEmpty.toList lines') (yankScratchOptions lines' row col)
-  windowSetOption (ScratchState.window scratch) "cursorline" False
-  windowSetOption (ScratchState.window scratch) "signcolumn" ("no" :: Text)
+  windowSetOption (Scratch.window scratch) "cursorline" False
+  windowSetOption (Scratch.window scratch) "signcolumn" ("no" :: Text)
   scratch <$ defineSign
 
 selectYankInScratch ::

@@ -4,11 +4,10 @@ import qualified Chiasma.Data.Ident as Ident (Ident (Str))
 import Control.Lens ((.~))
 import Log (Severity (Error))
 import Polysemy.Test (UnitTest, (===))
-import Ribosome.Api.Buffer (currentBufferContent)
-import qualified Ribosome.Data.Register as Register (Register (Special))
-import qualified Ribosome.Data.RegisterType as RegisterType (RegisterType (Line))
-import Ribosome.Host.Data.HandlerError (ErrorMessage (ErrorMessage))
-import qualified Ribosome.Host.Effect.Errors as Errors
+import Ribosome (ErrorMessage (ErrorMessage))
+import Ribosome.Api (currentBufferContent)
+import qualified Ribosome.Errors as Errors
+import qualified Ribosome.Register as Register
 
 import Uracil.Data.Yank (Yank (Yank))
 import Uracil.Diag (uraDiag)
@@ -56,7 +55,7 @@ yanks =
     ]
   where
     item ident =
-      Yank ident (Register.Special "*") RegisterType.Line "y"
+      Yank ident (Register.Special "*") Register.Line "y"
 
 test_diag :: UnitTest
 test_diag =

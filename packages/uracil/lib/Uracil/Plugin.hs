@@ -3,13 +3,18 @@ module Uracil.Plugin where
 import Conc (interpretAtomic, interpretSyncAs, withAsync_)
 import Exon (exon)
 import qualified Log
-import Ribosome.Data.PluginConfig (PluginConfig (PluginConfig))
-import Ribosome.Host (Rpc, RpcError (RpcError))
-import Ribosome.Host.Data.Execution (Execution (Async))
-import Ribosome.Host.Data.RpcHandler (RpcHandler)
-import Ribosome.Host.Effect.Errors (Errors)
-import Ribosome.Host.Handler (rpcAutocmd, rpcCommand, rpcFunction)
-import Ribosome.Remote (runNvimPluginIO)
+import Ribosome (
+  Errors,
+  Execution (Async),
+  PluginConfig (PluginConfig),
+  Rpc,
+  RpcError (RpcError),
+  RpcHandler,
+  rpcAutocmd,
+  rpcCommand,
+  rpcFunction,
+  runNvimPluginIO,
+  )
 
 import Uracil.Data.Env (Env)
 import Uracil.Data.PasteLock (PasteLock (PasteLock))

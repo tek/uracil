@@ -1,8 +1,6 @@
 module Uracil.Data.RegEvent where
 
-import Ribosome.Data.Register (Register)
-import Ribosome.Data.RegisterType (RegisterType)
-import Ribosome.Host.Class.Msgpack.Decode (MsgpackDecode)
+import Ribosome (MsgpackDecode, Register, RegisterType)
 
 import Uracil.Data.YankCommand (YankCommand)
 
