@@ -1,7 +1,6 @@
 module Uracil.YankMenu where
 
 import Chiasma.Data.Ident (Ident)
-import Conc (interpretSync)
 import Control.Lens (use)
 import qualified Data.Map.Strict as Map (fromList)
 import qualified Data.Text as Text (length, take)
@@ -13,6 +12,7 @@ import Ribosome.Menu (
   Mappings,
   MenuItem (MenuItem),
   MenuWidget,
+  PromptListening,
   defaultPrompt,
   focus,
   fuzzyItemFilter,
@@ -82,6 +82,7 @@ type YankMenuStack res =
   [
     Scratch !! RpcError,
     Settings !! SettingError,
+    Sync PromptListening,
     Race,
     Mask res,
     AtomicState Env,
@@ -98,7 +99,7 @@ uraYankMenuFor ::
   Maybe YankCommand ->
   Handler r ()
 uraYankMenuFor operators = do
-  resumeHandlerError @Rpc $ resumeHandlerError @Scratch $ mapHandlerError @YankError $ interpretSync do
+  resumeHandlerError @Rpc $ resumeHandlerError @Scratch $ mapHandlerError @YankError do
     promptConfig <- defaultPrompt []
     width <- windowGetWidth =<< vimGetCurrentWindow
     items <- stopNote YankError.EmptyHistory . nonEmpty . yankMenuItems width =<< yanksFor operators

@@ -112,6 +112,7 @@ in {
         "ribosome"
         "ribosome-host"
         "ribosome-host-test"
+        "ribosome-menu"
         "ribosome-test"
         "tasty"
         "uracil"

@@ -1,6 +1,6 @@
 module Uracil.Plugin where
 
-import Conc (interpretAtomic, interpretSyncAs, withAsync_)
+import Conc (interpretAtomic, interpretSync, interpretSyncAs, withAsync_)
 import Exon (exon)
 import qualified Log
 import Ribosome (
@@ -15,6 +15,7 @@ import Ribosome (
   rpcFunction,
   runNvimPluginIO,
   )
+import Ribosome.Menu (PromptListening)
 
 import Uracil.Data.Env (Env)
 import Uracil.Data.PasteLock (PasteLock (PasteLock))
@@ -25,6 +26,7 @@ import Uracil.YankMenu (uraYankMenu, uraYankMenuFor)
 
 type UracilStack =
   [
+    Sync PromptListening,
     Sync PasteLock,
     AtomicState Env
   ]
@@ -34,8 +36,9 @@ conf =
   PluginConfig "uracil" def
 
 handlers ::
-  Members [Errors, Mask res, Race, Final IO] r =>
   Members PasteStack r =>
+  Members UracilStack r =>
+  Members [Errors, Mask res, Race, Final IO] r =>
   [RpcHandler r]
 handlers =
   [
@@ -61,7 +64,7 @@ interpretUracilStack ::
   Members [Rpc !! RpcError, Race, Log, Resource, Async, Embed IO] r =>
   InterpretersFor UracilStack r
 interpretUracilStack sem =
-  interpretAtomic def $ interpretSyncAs PasteLock do
+  interpretAtomic def $ interpretSyncAs PasteLock $ interpretSync do
     withAsync_ prepare sem
 
 uracil :: IO ()
