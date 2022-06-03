@@ -1,21 +1,15 @@
 # Intro
 
-**uracil** is a [Neovim] plugin written in [Haskell] and powered by [ribosome]
-and [nvim-hs].
+**Uracil** is a [Neovim] plugin written in [Haskell] with the plugin framework [Ribosome].
 
 It provides comfortable access to registers for yanking and pasting.
-The plugin consumes yank autocmd event data and provides several lists of
-snippets to the user.
+The plugin consumes yank autocmd event data and provides several lists of snippets to the user.
 
 # Install
 
-This plugin depends on the Haskell plugin manager [chromatin] and [nix].
-To install, request both *chromatin* and *uracil* from your Neovim plugin manager:
-
-```vim
-Plug 'tek/chromatin'
-Plug 'tek/uracil'
-```
+The plugin can be loaded by specifying the Github repo to a package manager like any other, but in order to start it,
+the [Nix] build tools needs to be available.
+Nix will fetch Uracil's dependencies and build its sources when the plugin is loaded.
 
 # Recommended Mappings
 
@@ -118,8 +112,5 @@ Displays various information about the current state in a scratch buffer:
 
 [Neovim]: https://github.com/neovim/neovim
 [Haskell]: https://www.haskell.org
-[ribosome]: https://github.com/tek/ribosome
-[chromatin]: https://github.com/tek/chromatin
-[nvim-hs]: https://github.com/neovimhaskell/nvim-hs
-[nvim-hs.vim]: https://github.com/neovimhaskell/nvim-hs.vim
-[stack]: https://docs.haskellstack.org/en/stable/README
+[Ribosome]: https://github.com/tek/ribosome
+[nix]: https://nixos.org/learn.html
