@@ -30,6 +30,7 @@ import Uracil.Data.YankError (YankError)
 import qualified Uracil.Data.YankError as YankError (YankError (EmptyHistory, InvalidMenuIndex))
 import Uracil.Paste (pasteIdent, ppasteIdent)
 import Uracil.Yank (loadYankIdent, yanksFor)
+import Exon (exon)
 
 menuAction ::
   Members [Stop YankError, Resource, Embed IO] r =>
@@ -68,7 +69,7 @@ yankMenuItems width yanks' =
     count [] =
       ""
     count ls =
-      " [" <> show (length ls + 1) <> "]"
+      [exon| [#{show (length ls + 1)}]|]
     maxlen =
       width - 6
 
