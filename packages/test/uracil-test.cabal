@@ -106,7 +106,6 @@ test-suite uracil-test-unit
       Uracil.Test.PasteTest
       Uracil.Test.Run
       Uracil.Test.YankMenuTest
-      Uracil.Test.YankTest
   hs-source-dirs:
       test
   default-extensions:

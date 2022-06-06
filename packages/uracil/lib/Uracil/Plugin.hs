@@ -6,14 +6,13 @@ import qualified Log
 import Ribosome (
   Errors,
   Execution (Async),
-  PluginConfig (PluginConfig),
   Rpc,
   RpcError (RpcError),
   RpcHandler,
   rpcAutocmd,
   rpcCommand,
   rpcFunction,
-  runNvimPluginIO,
+  runNvimHandlersIO,
   )
 import Ribosome.Menu (PromptListening)
 
@@ -30,10 +29,6 @@ type UracilStack =
     Sync PasteLock,
     AtomicState Env
   ]
-
-conf :: PluginConfig
-conf =
-  PluginConfig "uracil" def
 
 handlers ::
   Members PasteStack r =>
@@ -69,4 +64,4 @@ interpretUracilStack sem =
 
 uracil :: IO ()
 uracil =
-  runNvimPluginIO @UracilStack conf mempty mempty handlers interpretUracilStack
+  runNvimHandlersIO @UracilStack "uracil" interpretUracilStack handlers

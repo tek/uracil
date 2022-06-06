@@ -2,23 +2,20 @@ module Uracil.Test.Run where
 
 import Log (Severity (Debug))
 import Polysemy.Test (UnitTest)
-import Ribosome (HandlerError, HostConfig, interpretPlugin, setStderr, testPlugin)
-import Ribosome.Test (PluginStack, TestEffects, TestStack, runTestConf, testHandler)
+import Ribosome (HandlerError, HostConfig, PluginConfig (PluginConfig), setStderr)
+import Ribosome.Test (StackWith, TestConfig (TestConfig), testEmbedConf, testHandler)
 
 import Uracil.Plugin (UracilStack, interpretUracilStack)
 
 type UraTestStack =
-  Stop HandlerError : TestEffects ++ UracilStack ++ PluginStack ++ TestStack
+  Stop HandlerError : StackWith UracilStack
 
 uraTestConf ::
   HostConfig ->
   Sem UraTestStack () ->
   UnitTest
 uraTestConf conf =
-  runTestConf False .
-  interpretPlugin conf "test" mempty mempty .
-  interpretUracilStack .
-  testPlugin "test" mempty .
+  testEmbedConf @UracilStack (TestConfig False (PluginConfig "uracil" conf)) interpretUracilStack .
   testHandler
 
 uraTest ::
