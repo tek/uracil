@@ -3,7 +3,7 @@ module Uracil.Test.YankMenuTest where
 import qualified Chiasma.Data.Ident as Ident (Ident (Str))
 import Control.Lens ((.~))
 import qualified Data.List.NonEmpty as NonEmpty (toList)
-import Polysemy.Test (TestError, UnitTest, unitTest, (===))
+import Polysemy.Test (TestError, UnitTest, unitTest, (===), assertLeft)
 import Ribosome (Rpc)
 import Ribosome.Api (currentBufferContent, getreg, setCurrentBufferContent, setCurrentLine, unnamedRegister)
 import Ribosome.Menu (withPromptInput)
@@ -52,7 +52,7 @@ test_yankMenuYank :: UnitTest
 test_yankMenuYank =
   uraTest do
     yankMenuTest yankChars
-    (Left (NonEmpty.toList targetItem) ===) =<< getreg unnamedRegister
+    assertLeft (NonEmpty.toList targetItem) =<< getreg unnamedRegister
 
 pasteChars :: [Text]
 pasteChars =

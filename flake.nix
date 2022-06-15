@@ -12,7 +12,7 @@
 
     overrides = { source, buildInputs, pkgs, ... }:
     let
-      inputs = buildInputs [pkgs.neovim pkgs.tmux pkgs.rxvt-unicode];
+      inputs = buildInputs [pkgs.neovim pkgs.tmux pkgs.xterm];
     in {
       polysemy-time = source.package polysemy-time "time";
       uracil-test = inputs;
