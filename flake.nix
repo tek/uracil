@@ -36,6 +36,7 @@
     ghcid.shellConfig.buildInputs = with config.devGhc.pkgs; [pkgs.neovim pkgs.tmux];
     ghci = {
       preludePackage = "incipit";
+      preludeModule = "Incipit";
       args = ["-fplugin=Polysemy.Plugin"];
       extensions = ["StandaloneKindSignatures" "OverloadedLabels"];
     };

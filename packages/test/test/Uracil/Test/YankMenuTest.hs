@@ -4,16 +4,20 @@ import qualified Chiasma.Data.Ident as Ident (Ident (Str))
 import Control.Lens ((.~))
 import qualified Data.List.NonEmpty as NonEmpty (toList)
 import Polysemy.Test (TestError, UnitTest, unitTest, (===), assertLeft)
-import Ribosome (Rpc)
-import Ribosome.Api (currentBufferContent, getreg, setCurrentBufferContent, setCurrentLine, unnamedRegister)
-import Ribosome.Menu (withPromptInput)
+import Ribosome (Rpc, Scratch)
+import Ribosome.Api (currentBufferContent, getreg, setCurrentBufferContent, setCurrentLine, unnamedRegister, syntheticInput)
 import qualified Ribosome.Register as Register
-import Ribosome.Test (resumeTestError, testHandler)
+import Ribosome.Test (testHandler, testError)
 import Test.Tasty (TestTree, testGroup)
 
 import Uracil.Data.Yank (Yank (Yank))
 import Uracil.Test.Run (uraTest)
-import Uracil.YankMenu (YankMenuStack, uraYankMenu)
+import Uracil.YankMenu (YankMenuStack, yankMenuWith)
+import Ribosome.Menu (PromptListening, defaultPrompt, interpretMenu)
+import Time (MilliSeconds, convert)
+import qualified Sync
+import Conc (withAsync_)
+import Uracil.Data.YankError (YankError)
 
 targetItem :: NonEmpty Text
 targetItem =
@@ -32,17 +36,28 @@ items =
     item ident =
       Yank ident (Register.Special "*") Register.Line "y"
 
+withPromptInput ::
+  Members [Sync PromptListening, Rpc, Resource, Race, Async, Time t d] r =>
+  Maybe MilliSeconds ->
+  [Text] ->
+  Sem r a ->
+  Sem r a
+withPromptInput interval chrs =
+  withAsync_ (Sync.takeBlock *> syntheticInput (convert <$> interval) chrs)
+
 yankMenuTest ::
-  Members (YankMenuStack res) r =>
-  Members [Error TestError, Async] r =>
+  Members YankMenuStack r =>
+  Members [Rpc, Scratch, Error TestError, Async] r =>
   [Text] ->
   Sem r ()
 yankMenuTest chars =
-  resumeTestError @Rpc do
+  testError @YankError do
     atomicModify' (#yanks .~ items)
     setCurrentBufferContent ["1", "2", "3"]
     setCurrentLine 1
-    withPromptInput (Just 50) chars (testHandler uraYankMenu)
+    promptConfig <- defaultPrompt []
+    interpretMenu do
+      withPromptInput (Just 50) chars (testHandler (yankMenuWith promptConfig Nothing))
 
 yankChars :: [Text]
 yankChars =

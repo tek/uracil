@@ -1,27 +1,31 @@
 module Uracil.YankMenu where
 
 import Chiasma.Data.Ident (Ident)
+import Conc (Restoration)
 import Control.Lens (use)
-import qualified Data.Map.Strict as Map (fromList)
 import qualified Data.Text as Text (length, take)
+import Exon (exon)
 import Polysemy.Chronos (ChronosTime)
-import Ribosome (Handler, Rpc, RpcError, Scratch, SettingError, Settings, mapHandlerError, resumeHandlerError)
+import Ribosome (Handler, Rpc, RpcError, Scratch, SettingError, Settings, mapHandlerError, resumeHandlerError, HandlerError)
 import Ribosome.Api (vimGetCurrentWindow, windowGetWidth)
-import qualified Ribosome.Menu as Menu
 import Ribosome.Menu (
   Mappings,
   MenuItem (MenuItem),
+  MenuRead,
   MenuWidget,
+  PromptConfig,
   PromptListening,
   defaultPrompt,
   focus,
-  fuzzyItemFilter,
+  interpretMenu,
   menuRead,
   menuSuccess,
   semState,
   simpleMenuItem,
-  staticNvimMenuWith,
+  staticNvimMenuDef,
+  withMappings,
   )
+import Ribosome.Menu.Data.MenuState (MenuStack)
 
 import Uracil.Data.Env (Env)
 import Uracil.Data.Yank (Yank (Yank))
@@ -30,33 +34,45 @@ import Uracil.Data.YankError (YankError)
 import qualified Uracil.Data.YankError as YankError (YankError (EmptyHistory, InvalidMenuIndex))
 import Uracil.Paste (pasteIdent, ppasteIdent)
 import Uracil.Yank (loadYankIdent, yanksFor)
-import Exon (exon)
+import Uracil.Menu (handleResult)
+
+data YankAction =
+  ActionLoad Ident
+  |
+  ActionPaste Ident
+  |
+  ActionPpaste Ident
+  deriving stock (Eq, Show)
 
 menuAction ::
-  Members [Stop YankError, Resource, Embed IO] r =>
-  (Ident -> Sem r ()) ->
-  MenuWidget Ident r ()
+  MenuRead Ident r =>
+  Member (Stop YankError) r =>
+  (Ident -> YankAction) ->
+  MenuWidget r YankAction
 menuAction action = do
   MenuItem ident _ _ <- stopNote YankError.InvalidMenuIndex =<< menuRead (semState (use focus))
   menuSuccess (action ident)
 
 menuYank ::
-  Members [Rpc, Log, AtomicState Env, Stop YankError, Resource, Embed IO] r =>
-  MenuWidget Ident r ()
+  MenuRead Ident r =>
+  Member (Stop YankError) r =>
+  MenuWidget r YankAction
 menuYank =
-  menuAction loadYankIdent
+  menuAction ActionLoad
 
 menuPaste ::
-  Members [AtomicState Env, Rpc !! e, Rpc, Log, Stop YankError, Resource, Embed IO] r =>
-  MenuWidget Ident r ()
+  MenuRead Ident r =>
+  Member (Stop YankError) r =>
+  MenuWidget r YankAction
 menuPaste =
-  menuAction pasteIdent
+  menuAction ActionPaste
 
 menuPpaste ::
-  Members [AtomicState Env, Rpc !! e, Rpc, Log, Stop YankError, Resource, Embed IO] r =>
-  MenuWidget Ident r ()
+  MenuRead Ident r =>
+  Member (Stop YankError) r =>
+  MenuWidget r YankAction
 menuPpaste =
-  menuAction ppasteIdent
+  menuAction ActionPpaste
 
 yankMenuItems :: Int -> [Yank] -> [MenuItem Ident]
 yankMenuItems width yanks' =
@@ -74,18 +90,19 @@ yankMenuItems width yanks' =
       width - 6
 
 yankMenuMappings ::
+  MenuRead Ident r =>
   Members [AtomicState Env, Rpc !! e, Rpc, Log, Stop YankError, Resource, Embed IO] r =>
-  Mappings Ident r ()
+  Mappings r YankAction
 yankMenuMappings =
-  Map.fromList [("p", menuPaste), ("P", menuPpaste), ("y", menuYank)]
+  [("p", menuPaste), ("P", menuPpaste), ("y", menuYank)]
 
-type YankMenuStack res =
+type YankMenuStack =
   [
     Scratch !! RpcError,
     Settings !! SettingError,
     Sync PromptListening,
     Race,
-    Mask res,
+    Mask Restoration,
     AtomicState Env,
     Rpc !! RpcError,
     Log,
@@ -95,22 +112,40 @@ type YankMenuStack res =
     Final IO
   ]
 
+yankAction ::
+  Members [AtomicState Env, Stop YankError, Rpc, Log, Rpc !! RpcError] r =>
+  YankAction ->
+  Sem r ()
+yankAction = \case
+  ActionLoad i -> loadYankIdent i
+  ActionPaste i -> pasteIdent i
+  ActionPpaste i -> ppasteIdent i
+
+yankMenuWith ::
+  Members YankMenuStack r =>
+  Members (Sync PromptListening : MenuStack Ident) r =>
+  Members [Rpc, Scratch, Stop YankError, Stop HandlerError] r =>
+  PromptConfig ->
+  Maybe YankCommand ->
+  Sem r ()
+yankMenuWith promptConfig operators = do
+  width <- windowGetWidth =<< vimGetCurrentWindow
+  items <- stopNote YankError.EmptyHistory . nonEmpty . yankMenuItems width =<< yanksFor operators
+  withMappings yankMenuMappings do
+    result <- staticNvimMenuDef def (toList items) promptConfig
+    handleResult "yank" yankAction result
+
 uraYankMenuFor ::
-  Members (YankMenuStack res) r =>
+  Members YankMenuStack r =>
   Maybe YankCommand ->
   Handler r ()
 uraYankMenuFor operators = do
   resumeHandlerError @Rpc $ resumeHandlerError @Scratch $ mapHandlerError @YankError do
     promptConfig <- defaultPrompt []
-    width <- windowGetWidth =<< vimGetCurrentWindow
-    items <- stopNote YankError.EmptyHistory . nonEmpty . yankMenuItems width =<< yanksFor operators
-    void (staticNvimMenuWith (fuzzyItemFilter False) def (toList items) consumer promptConfig)
-  where
-    consumer =
-      Menu.withMappings yankMenuMappings
+    interpretMenu $ yankMenuWith promptConfig operators
 
 uraYankMenu ::
-  Members (YankMenuStack res) r =>
+  Members YankMenuStack r =>
   Handler r ()
 uraYankMenu =
   uraYankMenuFor Nothing

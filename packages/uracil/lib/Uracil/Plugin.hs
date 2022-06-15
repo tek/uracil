@@ -1,6 +1,6 @@
 module Uracil.Plugin where
 
-import Conc (interpretAtomic, interpretSync, interpretSyncAs, withAsync_)
+import Conc (interpretAtomic, interpretSync, interpretSyncAs, withAsync_, Restoration)
 import Exon (exon)
 import qualified Log
 import Ribosome (
@@ -33,7 +33,7 @@ type UracilStack =
 handlers ::
   Members PasteStack r =>
   Members UracilStack r =>
-  Members [Errors, Mask res, Race, Final IO] r =>
+  Members [Errors, Mask Restoration, Race, Final IO] r =>
   [RpcHandler r]
 handlers =
   [
@@ -45,8 +45,8 @@ handlers =
     rpcCommand "UraYankMenu" Async uraYankMenu,
     rpcCommand "UraYankMenuFor" Async uraYankMenuFor,
     -- TODO this was sync in the old version
-    rpcAutocmd "UraYank" "TextYankPost" def uraYank,
-    rpcAutocmd "UraStopPaste" "CursorMoved" def uraStopPaste
+    rpcAutocmd "UraYank" Async "TextYankPost" def uraYank,
+    rpcAutocmd "UraStopPaste" Async "CursorMoved" def uraStopPaste
   ]
 
 prepare ::
