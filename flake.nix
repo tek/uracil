@@ -3,10 +3,9 @@
 
   inputs = {
     ribosome.url = git+https://gitlab.tryp.io/haskell/ribosome?ref=polysemy;
-    polysemy-time.url = github:tek/polysemy-time;
   };
 
-  outputs = { ribosome, polysemy-time, ... }:
+  outputs = { ribosome, ... }:
   let
     inherit (ribosome.inputs) hix;
 
@@ -14,7 +13,6 @@
     let
       inputs = buildInputs [pkgs.neovim pkgs.tmux pkgs.xterm];
     in {
-      polysemy-time = source.package polysemy-time "time";
       uracil-test = inputs;
     };
 
