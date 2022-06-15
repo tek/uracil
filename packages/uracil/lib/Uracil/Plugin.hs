@@ -5,7 +5,7 @@ import Exon (exon)
 import qualified Log
 import Ribosome (
   Errors,
-  Execution (Async),
+  Execution (Async, Sync),
   Rpc,
   RpcError (RpcError),
   RpcHandler,
@@ -44,8 +44,8 @@ handlers =
     rpcFunction "UraPpasteFor" Async uraPpasteFor,
     rpcCommand "UraYankMenu" Async uraYankMenu,
     rpcCommand "UraYankMenuFor" Async uraYankMenuFor,
-    -- TODO this was sync in the old version
-    rpcAutocmd "UraYank" Async "TextYankPost" def uraYank,
+    -- This must be Sync because the handler reads the variable `v:event`, which is only set while the autocmd is active
+    rpcAutocmd "UraYank" Sync "TextYankPost" def uraYank,
     rpcAutocmd "UraStopPaste" Async "CursorMoved" def uraStopPaste
   ]
 
