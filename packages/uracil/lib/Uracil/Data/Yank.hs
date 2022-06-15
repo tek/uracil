@@ -29,3 +29,11 @@ instance Pretty Yank where
     where
       header =
         "yank:" <+> pretty r <+> pretty rt <+> pretty op
+
+newtype YankDup =
+  YankDup Yank
+  deriving stock (Eq, Show)
+
+instance Ord YankDup where
+  compare (YankDup l) (YankDup r) =
+    (comparing _regtype <> comparing _content) l r

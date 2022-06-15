@@ -2717,11 +2717,11 @@
         "polysemy-conc": "polysemy-conc_3"
       },
       "locked": {
-        "lastModified": 1655323888,
-        "narHash": "sha256-n5sOlNJ6BnHtYM1gzIIyqBXhXg88OjzDPB6xgQ8FAPY=",
+        "lastModified": 1655327914,
+        "narHash": "sha256-I6Qvq7OHK0fecf27QsA73sm6uJsoXBhgrboXn4b6gXg=",
         "ref": "polysemy",
-        "rev": "232c392092bdc25c46a6211f7f4663b405756969",
-        "revCount": 566,
+        "rev": "2decea41b4418992d9e5f58b6ac3ed14c0e7fd20",
+        "revCount": 567,
         "type": "git",
         "url": "https://gitlab.tryp.io/haskell/ribosome"
       },

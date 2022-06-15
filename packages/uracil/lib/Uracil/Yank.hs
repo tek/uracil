@@ -2,7 +2,6 @@ module Uracil.Yank where
 
 import Chiasma.Data.Ident (Ident, generateIdent, sameIdent)
 import qualified Control.Lens as Lens
-import Data.List (nub)
 import qualified Data.Text as Text
 import Exon (exon)
 import qualified Log
@@ -14,11 +13,12 @@ import qualified Ribosome.Settings as Settings
 import qualified Uracil.Data.Env as Env
 import Uracil.Data.Env (Env)
 import Uracil.Data.RegEvent (RegEvent (RegEvent))
-import Uracil.Data.Yank (Yank (Yank))
+import Uracil.Data.Yank (Yank (Yank), YankDup (YankDup))
 import Uracil.Data.YankCommand (YankCommand (YankCommand))
 import qualified Uracil.Data.YankError as YankError
 import Uracil.Data.YankError (YankError)
 import qualified Uracil.Settings as Settings
+import Data.List.Extra (nubOrdOn)
 
 validRegister :: Register -> Bool
 validRegister (Register.Special _) =
@@ -39,7 +39,7 @@ storeYank regtype register operator content = do
   ident <- generateIdent
   let yank = Yank ident register regtype operator content
   Log.debug [exon|store: #{show yank}|]
-  atomicModify' \ s -> s { Env.yanks = nub (yank : Env.yanks s) }
+  atomicModify' \ s -> s { Env.yanks = nubOrdOn YankDup (yank : Env.yanks s) }
 
 skipEvent ::
   Members [Settings !! SettingError, AtomicState Env, Log, Embed IO] r =>

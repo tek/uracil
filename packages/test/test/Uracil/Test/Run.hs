@@ -1,6 +1,6 @@
 module Uracil.Test.Run where
 
-import Log (Severity (Debug))
+import Log (Severity (Trace))
 import Polysemy.Test (UnitTest)
 import Ribosome (HandlerError, HostConfig, PluginConfig (PluginConfig), setStderr)
 import Ribosome.Test (StackWith, TestConfig (TestConfig), testEmbedConf, testHandler)
@@ -16,6 +16,12 @@ testConfig ::
 testConfig conf =
   TestConfig False (PluginConfig "uracil" conf)
 
+testConfigDebug ::
+  HostConfig ->
+  TestConfig
+testConfigDebug conf =
+  testConfig (setStderr Trace conf)
+
 uraTestConf ::
   HostConfig ->
   Sem UraTestStack () ->
@@ -30,8 +36,8 @@ uraTest ::
 uraTest =
   uraTestConf def
 
-uraTestDebug ::
+uraTestTrace ::
   Sem UraTestStack () ->
   UnitTest
-uraTestDebug =
-  uraTestConf (setStderr Debug def)
+uraTestTrace =
+  uraTestConf (setStderr Trace def)
