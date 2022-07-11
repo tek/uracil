@@ -1,7 +1,6 @@
 module Uracil.YankScratch where
 
 import qualified Control.Lens as Lens (view)
-import Control.Lens ((?~), (^.))
 import Data.Generics.Labels ()
 import qualified Data.List.NonEmpty as NonEmpty (toList)
 import qualified Data.Map.Strict as Map (fromList)
@@ -14,8 +13,8 @@ import Ribosome (
   ScratchId,
   ScratchOptions,
   ScratchState,
-  defaultScratchOptions,
   msgpackArray,
+  scratch,
   )
 import Ribosome.Api (currentCursor, setLine)
 import qualified Ribosome.Float as Float
@@ -93,7 +92,7 @@ moveSign line =
 
 yankScratchOptions :: NonEmpty Text -> Int -> Int -> ScratchOptions
 yankScratchOptions lines' row col =
-  defaultScratchOptions scratchId & #float ?~ float
+  scratch scratchId & #float ?~ float
   where
     float =
       def {
@@ -113,18 +112,18 @@ showYankScratch ::
 showYankScratch = do
   lines' <- yankLines
   (row, col) <- currentCursor
-  scratch <- Scratch.show (NonEmpty.toList lines') (yankScratchOptions lines' row col)
-  windowSetOption (Scratch.window scratch) "cursorline" False
-  windowSetOption (Scratch.window scratch) "signcolumn" ("no" :: Text)
-  scratch <$ defineSign
+  scr <- Scratch.show (NonEmpty.toList lines') (yankScratchOptions lines' row col)
+  windowSetOption (Scratch.window scr) "cursorline" False
+  windowSetOption (Scratch.window scr) "signcolumn" ("no" :: Text)
+  scr <$ defineSign
 
 selectYankInScratch ::
   Member Rpc r =>
   ScratchState ->
   Int ->
   Sem r ()
-selectYankInScratch scratch line =
-  setLine (scratch ^. #window) line *> moveSign line
+selectYankInScratch scr line =
+  setLine (scr ^. #window) line *> moveSign line
 
 ensureYankScratch ::
   Members [Rpc, Scratch, AtomicState Env, Stop YankError, Stop HandlerError] r =>

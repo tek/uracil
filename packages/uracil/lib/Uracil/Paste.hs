@@ -2,9 +2,8 @@ module Uracil.Paste where
 
 import Chiasma.Data.Ident (Ident, generateIdent)
 import qualified Chronos
-import qualified Conc as Sync
+import Conc (Lock, lock, lockOrSkip)
 import qualified Control.Lens as Lens (view)
-import Control.Lens ((%~), (.~), (?~))
 import Control.Monad.Extra (andM)
 import Data.Generics.Labels ()
 import Data.List (notElem)
@@ -25,17 +24,17 @@ import Ribosome.Data.SettingError (SettingError)
 import Ribosome.Effect.Scratch (Scratch)
 import qualified Ribosome.Effect.Settings as Settings
 import Ribosome.Effect.Settings (Settings)
+import Ribosome.Errors (pluginHandlerErrors)
 import Ribosome.Host (Rpc, RpcError)
 import Ribosome.Host.Api.Effect (vimGetOption)
 import Ribosome.Host.Data.HandlerError (HandlerError, mapHandlerError, resumeHandlerError)
 import Ribosome.Host.Data.RpcHandler (Handler)
-import Ribosome.Locks (lockOrSkip)
 import qualified Time
 
 import qualified Uracil.Data.Env as Env
 import Uracil.Data.Env (Env)
 import Uracil.Data.Paste (Paste (Paste))
-import Uracil.Data.PasteLock (PasteLock (PasteLock))
+import Uracil.Data.PasteLock (PasteLock)
 import Uracil.Data.Yank (Yank)
 import qualified Uracil.Data.Yank as Yank (content)
 import Uracil.Data.YankCommand (YankCommand)
@@ -279,7 +278,7 @@ type PasteStack =
     Scratch !! RpcError,
     Settings !! SettingError,
     Rpc !! RpcError,
-    Sync PasteLock,
+    Lock @@ PasteLock,
     Resource,
     AtomicState Env,
     Log,
@@ -291,14 +290,12 @@ type PasteStack =
 pasteRequest ::
   Members PasteStack r =>
   Maybe YankCommand ->
-  (Yank -> Sem (Stop YankError : Scratch : Settings : Rpc : Stop HandlerError : r) ()) ->
+  (Yank -> Sem (Lock : Stop YankError : Scratch : Settings : Rpc : Stop HandlerError : r) ()) ->
   Handler r ()
 pasteRequest commands paster =
-  resumeHandlerError @Rpc $
-  resumeHandlerError @Settings $
-  resumeHandlerError @Scratch $
+  pluginHandlerErrors $
   mapHandlerError @YankError $
-  Sync.lock PasteLock do
+  tag $ lock do
     maybe (startPaste commands paster) (repaste paster) =<< currentPaste
 
 uraPasteFor ::
@@ -328,8 +325,8 @@ uraPpaste =
   pasteRequest Nothing ppaste
 
 uraStopPaste ::
-  Members [Scratch !! RpcError, AtomicState Env, Sync PasteLock, Resource, Log] r =>
+  Members [Scratch !! RpcError, AtomicState Env, Lock @@ PasteLock, Resource, Log] r =>
   Handler r ()
 uraStopPaste =
   resumeHandlerError @Scratch $
-  void (lockOrSkip @PasteLock (whenM pasteActive cancelPaste))
+  void (tag (lockOrSkip (whenM pasteActive cancelPaste)))

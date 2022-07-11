@@ -3,12 +3,12 @@ module Uracil.Test.Run where
 import Log (Severity (Trace))
 import Polysemy.Test (UnitTest)
 import Ribosome (HandlerError, HostConfig, PluginConfig (PluginConfig), setStderr)
-import Ribosome.Test (StackWith, TestConfig (TestConfig), testEmbedConf, testHandler)
+import Ribosome.Test (EmbedStackWith, TestConfig (TestConfig), testEmbedConf, testHandler)
 
 import Uracil.Plugin (UracilStack, interpretUracilStack)
 
 type UraTestStack =
-  Stop HandlerError : StackWith UracilStack
+  Stop HandlerError : EmbedStackWith UracilStack
 
 testConfig ::
   HostConfig ->

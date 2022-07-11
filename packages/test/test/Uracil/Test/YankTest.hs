@@ -7,7 +7,7 @@ import Ribosome.Test (assertWait, testHandlersConf)
 import qualified Uracil.Data.Env as Env
 import Uracil.Data.Env (Env)
 import qualified Uracil.Data.Yank as Yank
-import Uracil.Plugin (UracilStack, handlers, interpretUracilStack)
+import Uracil.Plugin (UracilProdStack, handlers, interpretUracilProdStack)
 import Uracil.Test.Run (testConfig)
 
 newest ::
@@ -24,7 +24,7 @@ yankCount =
 
 test_yank :: UnitTest
 test_yank =
-  testHandlersConf @UracilStack (testConfig def) interpretUracilStack handlers do
+  testHandlersConf @UracilProdStack (testConfig def) interpretUracilProdStack handlers do
     setCurrentBufferContent ["1", "2", "3"]
     assertEq 0 . length =<< atomicGets Env.yanks
     void (nvimInput "yy")

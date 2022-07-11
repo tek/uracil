@@ -1,7 +1,6 @@
 module Uracil.Test.PasteTest where
 
 import qualified Chiasma.Data.Ident as Ident (Ident (Str))
-import Control.Lens ((.~))
 import qualified Data.List.NonEmpty as NonEmpty (toList)
 import Polysemy.Test (UnitTest, assertEq, unitTest, (===))
 import Ribosome (Rpc, Settings, mapHandlerError)

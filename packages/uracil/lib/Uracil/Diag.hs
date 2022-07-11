@@ -1,7 +1,5 @@
 module Uracil.Diag where
 
-import Control.Lens ((.~))
-import Data.Generics.Labels ()
 import qualified Data.Map.Strict as Map
 import Exon (exon)
 import Prettyprinter (Doc, line, nest, pretty, vsep)
@@ -13,8 +11,8 @@ import Ribosome (
   RpcError,
   Scratch,
   StoredError (StoredError),
-  defaultScratchOptions,
   resumeHandlerError,
+  scratch,
   )
 import qualified Ribosome.Errors as Errors
 import qualified Ribosome.Scratch as Scratch
@@ -95,6 +93,6 @@ uraDiag = do
   void (resumeHandlerError (Scratch.show (lines (show content)) options))
   where
     options =
-      defaultScratchOptions "ura-diagnostics"
+      scratch "ura-diagnostics"
       & #focus .~ True
       & #syntax .~ [diagnosticsSyntax]

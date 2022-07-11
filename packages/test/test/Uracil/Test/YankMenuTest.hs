@@ -1,23 +1,24 @@
 module Uracil.Test.YankMenuTest where
 
 import qualified Chiasma.Data.Ident as Ident (Ident (Str))
-import Control.Lens ((.~))
+import Conc (ConcStack, withAsync_)
 import qualified Data.List.NonEmpty as NonEmpty (toList)
-import Polysemy.Test (TestError, UnitTest, unitTest, (===), assertLeft)
-import Ribosome (Rpc, Scratch)
-import Ribosome.Api (currentBufferContent, getreg, setCurrentBufferContent, setCurrentLine, unnamedRegister, syntheticInput)
+import Polysemy.Chronos (ChronosTime)
+import Polysemy.Test (TestError, UnitTest, assertLeft, unitTest, (===))
+import Ribosome (Rpc, RpcError, Scratch, SettingError, Settings)
+import Ribosome.Api (currentBufferContent, getreg, setCurrentBufferContent, setCurrentLine, syntheticInput, unnamedRegister)
+import Ribosome.Menu (PromptListening, interpretNvimMenuFinal, promptInput)
 import qualified Ribosome.Register as Register
-import Ribosome.Test (testHandler, testError)
+import Ribosome.Test (testError, testHandler)
+import qualified Sync
 import Test.Tasty (TestTree, testGroup)
+import Time (MilliSeconds, convert)
 
 import Uracil.Data.Yank (Yank (Yank))
-import Uracil.Test.Run (uraTest)
-import Uracil.YankMenu (YankMenuStack, yankMenuWith)
-import Ribosome.Menu (PromptListening, defaultPrompt, interpretMenu)
-import Time (MilliSeconds, convert)
-import qualified Sync
-import Conc (withAsync_)
 import Uracil.Data.YankError (YankError)
+import Uracil.Plugin (UracilStack)
+import Uracil.Test.Run (uraTest)
+import Uracil.YankMenu (yankMenuWith)
 
 targetItem :: NonEmpty Text
 targetItem =
@@ -46,8 +47,10 @@ withPromptInput interval chrs =
   withAsync_ (Sync.takeBlock *> syntheticInput (convert <$> interval) chrs)
 
 yankMenuTest ::
-  Members YankMenuStack r =>
-  Members [Rpc, Scratch, Error TestError, Async] r =>
+  Members ConcStack r =>
+  Members UracilStack r =>
+  Members [ChronosTime, Log] r =>
+  Members [Rpc, Rpc !! RpcError, Scratch !! RpcError, Settings !! SettingError, Error TestError] r =>
   [Text] ->
   Sem r ()
 yankMenuTest chars =
@@ -55,9 +58,8 @@ yankMenuTest chars =
     atomicModify' (#yanks .~ items)
     setCurrentBufferContent ["1", "2", "3"]
     setCurrentLine 1
-    promptConfig <- defaultPrompt []
-    interpretMenu do
-      withPromptInput (Just 50) chars (testHandler (yankMenuWith promptConfig Nothing))
+    interpretNvimMenuFinal $ promptInput chars do
+      testHandler (yankMenuWith Nothing)
 
 yankChars :: [Text]
 yankChars =

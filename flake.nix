@@ -2,7 +2,7 @@
   description = "Neovim Register Manager";
 
   inputs = {
-    ribosome.url = git+https://gitlab.tryp.io/haskell/ribosome?ref=polysemy;
+    ribosome.url = git+https://git.tryp.io/tek/ribosome?ref=polysemy;
   };
 
   outputs = { ribosome, ... }:
@@ -33,8 +33,8 @@
     hackage.versionFile = "ops/version.nix";
     ghcid.shellConfig.buildInputs = with config.devGhc.pkgs; [pkgs.neovim pkgs.tmux];
     ghci = {
-      preludePackage = "incipit";
-      preludeModule = "Incipit";
+      preludePackage = "prelate";
+      preludeModule = "Prelate";
       args = ["-fplugin=Polysemy.Plugin"];
       extensions = ["StandaloneKindSignatures" "OverloadedLabels"];
     };

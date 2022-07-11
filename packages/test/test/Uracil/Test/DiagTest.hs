@@ -1,7 +1,6 @@
 module Uracil.Test.DiagTest where
 
 import qualified Chiasma.Data.Ident as Ident (Ident (Str))
-import Control.Lens ((.~))
 import Log (Severity (Error))
 import Polysemy.Test (UnitTest, (===))
 import Ribosome (ErrorMessage (ErrorMessage))
