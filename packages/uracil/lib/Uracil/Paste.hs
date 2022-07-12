@@ -11,7 +11,7 @@ import qualified Data.Text as Text (isInfixOf)
 import Exon (exon)
 import qualified Log
 import Polysemy.Chronos (ChronosTime)
-import Polysemy.Time (Seconds)
+import Polysemy.Time (MilliSeconds, convert)
 import Ribosome.Api.Mode (visualModeActive)
 import Ribosome.Api.Normal (noautocmdNormal, normal)
 import Ribosome.Api.Register (getregList, getregtype, unnamedRegister)
@@ -40,7 +40,7 @@ import qualified Uracil.Data.Yank as Yank (content)
 import Uracil.Data.YankCommand (YankCommand)
 import Uracil.Data.YankError (YankError)
 import qualified Uracil.Data.YankError as YankError (YankError (EmptyHistory))
-import qualified Uracil.Settings as Settings (pasteTimeout)
+import qualified Uracil.Settings as Settings (pasteTimeout, pasteTimeoutMillis)
 import Uracil.Yank (allYanks, loadYank, setCommand, storeYank, yankByIdent, yankByIndex, yanks)
 import Uracil.YankScratch (ensureYankScratch, killYankScratch, selectYankInScratch)
 
@@ -110,7 +110,7 @@ pasteActive =
 
 pasteHasTimedOut ::
   Member ChronosTime r =>
-  Seconds ->
+  MilliSeconds ->
   Chronos.Time ->
   Sem r Bool
 pasteHasTimedOut timeout updated = do
@@ -119,7 +119,7 @@ pasteHasTimedOut timeout updated = do
 
 shouldCancelPaste ::
   Members [AtomicState Env, ChronosTime] r =>
-  Seconds ->
+  MilliSeconds ->
   Ident ->
   Sem r Bool
 shouldCancelPaste timeout ident =
@@ -159,19 +159,26 @@ cancelPaste = do
 
 cancelPasteAfter ::
   Members [Scratch, AtomicState Env, ChronosTime, Log] r =>
-  Seconds ->
+  MilliSeconds ->
   Ident ->
   Sem r ()
 cancelPasteAfter timeout ident =
   whenM (shouldCancelPaste timeout ident) cancelPaste
 
+pasteTimeout ::
+  Members [Settings !! SettingError, Settings] r =>
+  Sem r MilliSeconds
+pasteTimeout = do
+  durationMillis <- Settings.maybe Settings.pasteTimeoutMillis
+  maybe (convert <$> Settings.get Settings.pasteTimeout) pure durationMillis
+
 waitAndCancelPaste ::
-  Members [Scratch, AtomicState Env, ChronosTime, Log] r =>
+  Members [Settings !! SettingError, Scratch, AtomicState Env, ChronosTime, Log] r =>
   Member Settings r =>
   Ident ->
   Sem r ()
 waitAndCancelPaste ident = do
-  duration <- Settings.get Settings.pasteTimeout
+  duration <- pasteTimeout
   Time.sleep duration
   cancelPasteAfter duration ident
 
@@ -192,7 +199,7 @@ logPaste update index visual yank =
 
 insertPaste ::
   Members [Scratch, AtomicState Env, Stop YankError, Stop HandlerError, Log, ChronosTime, Async, Embed IO] r =>
-  Members [Settings, Rpc] r =>
+  Members [Settings !! SettingError, Settings, Rpc] r =>
   Bool ->
   (Yank -> Sem r ()) ->
   Int ->
@@ -244,7 +251,7 @@ syncClipboard = do
 
 repaste ::
   Members [Scratch, AtomicState Env, Stop YankError, Stop HandlerError, Log, ChronosTime, Async, Embed IO] r =>
-  Members [Settings, Rpc] r =>
+  Members [Settings !! SettingError, Settings, Rpc] r =>
   (Yank -> Sem r ()) ->
   Paste ->
   Sem r ()
@@ -263,7 +270,7 @@ repaste paster (Paste _ index _ _ visual) = do
 
 startPaste ::
   Members [Scratch, AtomicState Env, Stop YankError, Stop HandlerError, Log, ChronosTime, Async, Embed IO] r =>
-  Members [Settings, Rpc] r =>
+  Members [Settings !! SettingError, Settings, Rpc] r =>
   Maybe YankCommand ->
   (Yank -> Sem r ()) ->
   Sem r ()

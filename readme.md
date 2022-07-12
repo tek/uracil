@@ -25,10 +25,16 @@ xnoremap P <cmd>call UraPpaste()<cr>
 
 # Settings
 
+## `g:uracil_paste_timeout_millis`
+
+The time in milliseconds after which the current [paste](#urapaste) is terminated.
+If unset, `g:uracil_paste_timeout` is used.
+
 ## `g:uracil_paste_timeout`
 
 The time in seconds after which the current [paste](#urapaste) is terminated.
 Default is `1`.
+Deprecated in favor of `g:uracil_paste_timeout_millis`.
 
 ## `g:uracil_skip_yank`
 
