@@ -7,8 +7,6 @@
 
   outputs = { ribosome, ... }:
   let
-    inherit (ribosome.inputs) hix;
-
     overrides = { source, buildInputs, pkgs, ... }:
     let
       inputs = buildInputs [pkgs.neovim pkgs.tmux pkgs.xterm];
@@ -16,7 +14,7 @@
       uracil-test = inputs;
     };
 
-  in hix.lib.flake ({ config, lib, ... }: {
+  in ribosome.inputs.hix.lib.flake ({ config, lib, ... }: {
     base = ./.;
     inherit overrides;
     compat.enable = false;
@@ -37,6 +35,9 @@
       preludeModule = "Prelate";
       args = ["-fplugin=Polysemy.Plugin"];
       extensions = ["StandaloneKindSignatures" "OverloadedLabels"];
+    };
+    output.amend = project: outputs: {
+      packages.static = project.pkgs.haskell.lib.justStaticExecutables outputs.packages.uracil;
     };
   });
 }

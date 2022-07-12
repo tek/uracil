@@ -7,9 +7,12 @@ The plugin consumes yank autocmd event data and provides several lists of snippe
 
 # Install
 
-The plugin can be loaded by specifying the Github repo to a package manager like any other, but in order to start it,
-the [Nix] build tools needs to be available.
-Nix will fetch Uracil's dependencies and build its sources when the plugin is loaded.
+The plugin can be loaded by specifying the Github repo to a package manager like any other, but its executable has to be
+built or downloaded:
+
+* If [Nix] is installed, it is used to build the project, taking advantage of prebuilt packages from Cachix.
+* Otherwise, a binary built by a Github Action is downloaded.
+* If the variable `g:uracil_fetch_bin` is set to `1`, Nix is ignored and the binary is downloaded regardless.
 
 # Recommended Mappings
 
@@ -113,4 +116,4 @@ Displays various information about the current state in a scratch buffer:
 [Neovim]: https://github.com/neovim/neovim
 [Haskell]: https://www.haskell.org
 [Ribosome]: https://github.com/tek/ribosome
-[nix]: https://nixos.org/learn.html
+[Nix]: https://nixos.org/learn.html
