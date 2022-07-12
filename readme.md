@@ -103,6 +103,8 @@ Same as `UraPaste`, but takes one argument that specifies the
 
 Identical to [`UraPaste`](#urapaste), but uses `P`.
 
+### `UraPpasteFor`
+
 Same as `UraPpaste`, but takes one argument that specifies the
 [operator filter][#operator-filters].
 
