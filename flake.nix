@@ -7,14 +7,14 @@
 
   outputs = { ribosome, ... }:
   let
-    overrides = { source, buildInputs, pkgs, ... }:
+    overrides = { self, source, buildInputs, pkgs, hsLib, ... }:
     let
       inputs = buildInputs [pkgs.neovim pkgs.tmux pkgs.xterm];
     in {
       uracil-test = inputs;
     };
 
-  in ribosome.inputs.hix.lib.flake ({ config, lib, ... }: {
+  in ribosome.lib.flake ({ config, lib, ... }: {
     base = ./.;
     inherit overrides;
     compat.enable = false;
@@ -23,6 +23,7 @@
       uracil-test = ./packages/test;
     };
     main = "uracil-test";
+    exe = "uracil";
     depsFull = [ribosome];
     hpack = {
       packages = import ./ops/hpack.nix { inherit config lib; };
@@ -35,9 +36,6 @@
       preludeModule = "Prelate";
       args = ["-fplugin=Polysemy.Plugin"];
       extensions = ["StandaloneKindSignatures" "OverloadedLabels"];
-    };
-    output.amend = project: outputs: {
-      packages.static = project.pkgs.haskell.lib.justStaticExecutables outputs.packages.uracil;
     };
   });
 }
