@@ -24,6 +24,7 @@
     };
     main = "uracil-test";
     exe = "uracil";
+    branch = "main";
     githubOrg = "tek";
     cachixName = "tek";
     cachixKey = "tek.cachix.org-1:+sdc73WFq8aEKnrVv5j/kuhmnW2hQJuqdPJF5SnaCBk=";
