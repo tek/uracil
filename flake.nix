@@ -2,7 +2,7 @@
   description = "Neovim Register Manager";
 
   inputs = {
-    ribosome.url = git+https://git.tryp.io/tek/ribosome?ref=polysemy;
+    ribosome.url = git+https://git.tryp.io/tek/ribosome;
   };
 
   outputs = { ribosome, ... }:
