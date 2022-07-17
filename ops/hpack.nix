@@ -88,10 +88,8 @@ in {
       "exon"
       "extra"
       "generic-lens"
-      "lens"
       "polysemy-chronos"
       "ribosome"
-      "ribosome-host"
       "ribosome-menu"
       "prettyprinter"
     ];
@@ -106,11 +104,8 @@ in {
     tests.uracil-test-unit = exe "uracil-test" "test" {
       dependencies = [
         "chiasma"
-        "lens"
         "polysemy-test"
         "ribosome"
-        "ribosome-host"
-        "ribosome-host-test"
         "ribosome-menu"
         "ribosome-test"
         "tasty"

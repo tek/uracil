@@ -181,14 +181,11 @@ test-suite uracil-test-unit
   build-depends:
       base >=4.12 && <5
     , chiasma
-    , lens
     , polysemy
     , polysemy-plugin
     , polysemy-test
     , prelate >=0.1
     , ribosome
-    , ribosome-host
-    , ribosome-host-test
     , ribosome-menu
     , ribosome-test
     , tasty

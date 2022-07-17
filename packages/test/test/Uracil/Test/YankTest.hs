@@ -14,7 +14,7 @@ newest ::
   Member (AtomicState Env) r =>
   Sem r (Maybe (NonEmpty Text))
 newest =
-  fmap Yank._content . head <$> atomicGets Env.yanks
+  fmap Yank.content . head <$> atomicGets Env.yanks
 
 yankCount ::
   Member (AtomicState Env) r =>

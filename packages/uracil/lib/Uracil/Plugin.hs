@@ -91,6 +91,6 @@ interpretUracilProdStack =
   interpretMenuRendererNvim .
   withAsync_ prepare
 
-uracil :: IO ()
-uracil =
+main :: IO ()
+main =
   runNvimHandlersIO @UracilProdStack "uracil" interpretUracilProdStack handlers

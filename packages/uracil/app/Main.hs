@@ -1,7 +1,3 @@
-module Main where
+module Main (main) where
 
-import Uracil.Plugin (uracil)
-
-main :: IO ()
-main =
-  uracil
+import Uracil.Plugin (main)

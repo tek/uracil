@@ -114,14 +114,12 @@ library
     , exon
     , extra
     , generic-lens
-    , lens
     , polysemy
     , polysemy-chronos
     , polysemy-plugin
     , prelate >=0.1
     , prettyprinter
     , ribosome
-    , ribosome-host
     , ribosome-menu
   mixins:
       base hiding (Prelude)

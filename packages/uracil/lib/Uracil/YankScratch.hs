@@ -1,6 +1,5 @@
 module Uracil.YankScratch where
 
-import qualified Control.Lens as Lens (view)
 import Data.Generics.Labels ()
 import qualified Data.List.NonEmpty as NonEmpty (toList)
 import qualified Data.Map.Strict as Map (fromList)
@@ -37,7 +36,7 @@ yankLines ::
   Members [AtomicState Env, Stop YankError] r =>
   Sem r (NonEmpty Text)
 yankLines = do
-  lines' <- fmap (formatLine . Lens.view Yank.content) <$> yanks
+  lines' <- fmap (formatLine . Yank.content) <$> yanks
   stopNote YankError.EmptyHistory (nonEmpty lines')
   where
     formatLine (h :| t) | null t =

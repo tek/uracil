@@ -3,7 +3,6 @@ module Uracil.Paste where
 import Chiasma.Data.Ident (Ident, generateIdent)
 import qualified Chronos
 import Conc (Lock, lock, lockOrSkip)
-import qualified Control.Lens as Lens (view)
 import Control.Monad.Extra (andM)
 import Data.Generics.Labels ()
 import Data.List (notElem)
@@ -244,7 +243,7 @@ syncClipboard ::
   Members [Rpc, AtomicState Env, Log, Embed IO] r =>
   Sem r ()
 syncClipboard = do
-  lastTwoYanks <- take 2 . fmap (Lens.view Yank.content) <$> allYanks
+  lastTwoYanks <- take 2 . fmap Yank.content <$> allYanks
   skip <- atomicGets Env.skip
   atomicModify' (#skip .~ Nothing)
   traverse_ @[] (fetchClipboard lastTwoYanks skip) [Register.Special "*", Register.Special "\""]
