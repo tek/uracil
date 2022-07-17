@@ -7,12 +7,20 @@ The plugin consumes yank autocmd event data and provides several lists of snippe
 
 # Install
 
-The plugin can be loaded by specifying the Github repo to a package manager like any other, but its executable has to be
-built or downloaded:
+The plugin can be loaded by specifying the repo to a package manager like any other, for example by cloning it in a
+subdirectory of `'packpath'` or using one of the many plugin managers.
 
-* If [Nix] is installed, it is used to build the project, taking advantage of prebuilt packages from Cachix.
-* Otherwise, a binary built by a Github Action is downloaded.
-* If the variable `g:uracil_fetch_bin` is set to `1`, Nix is ignored and the binary is downloaded regardless.
+```vim
+Plug 'tek/uracil'
+```
+
+Since the plugin is written in Haskell, its executable has to be fetched or built on the first start.
+
+* If the [Nix package manager](https://nixos.org/learn.html) is available, the plugin will be fetched from the Nix cache
+  (or built if the current commit isn't in the cache)
+* Otherwise it will be downloaded from Github's releases.
+* If the variable `g:uracil_fetch_bin` is set to `1`, Nix is ignored and the binary is downloaded from Github
+  regardless.
 
 # Recommended Mappings
 
@@ -124,4 +132,3 @@ Displays various information about the current state in a scratch buffer:
 [Neovim]: https://github.com/neovim/neovim
 [Haskell]: https://www.haskell.org
 [Ribosome]: https://github.com/tek/ribosome
-[Nix]: https://nixos.org/learn.html
