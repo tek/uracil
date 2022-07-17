@@ -11,23 +11,33 @@ import Exon (exon)
 import qualified Log
 import Polysemy.Chronos (ChronosTime)
 import Polysemy.Time (MilliSeconds, convert)
-import Ribosome.Api.Mode (visualModeActive)
-import Ribosome.Api.Normal (noautocmdNormal, normal)
-import Ribosome.Api.Register (getregList, getregtype, unnamedRegister)
-import Ribosome.Api.Undo (undo)
-import Ribosome.Api.Window (redraw)
-import Ribosome.Data.Register (Register, registerRepr)
-import qualified Ribosome.Data.Register as Register (Register (..))
-import qualified Ribosome.Data.ScratchState as ScratchState
-import Ribosome.Data.SettingError (SettingError)
-import Ribosome.Effect.Scratch (Scratch)
-import qualified Ribosome.Effect.Settings as Settings
-import Ribosome.Effect.Settings (Settings)
+import Ribosome (
+  Handler,
+  HandlerError,
+  Rpc,
+  RpcError,
+  Scratch,
+  SettingError,
+  Settings,
+  mapHandlerError,
+  resumeHandlerError,
+  )
+import Ribosome.Api (
+  getregList,
+  getregtype,
+  noautocmdNormal,
+  normal,
+  redraw,
+  undo,
+  unnamedRegister,
+  vimGetOption,
+  visualModeActive,
+  )
 import Ribosome.Errors (pluginHandlerErrors)
-import Ribosome.Host (Rpc, RpcError)
-import Ribosome.Host.Api.Effect (vimGetOption)
-import Ribosome.Host.Data.HandlerError (HandlerError, mapHandlerError, resumeHandlerError)
-import Ribosome.Host.Data.RpcHandler (Handler)
+import Ribosome.Register (Register, registerRepr)
+import qualified Ribosome.Register as Register (Register (..))
+import qualified Ribosome.Scratch as Scratch
+import qualified Ribosome.Settings as Settings
 import qualified Time
 
 import qualified Uracil.Data.Env as Env
@@ -211,7 +221,7 @@ insertPaste isUpdate paster index = do
   scratch <- ensureYankScratch
   updated <- Time.now
   ident <- generateIdent
-  atomicModify' (#paste ?~ Paste ident index updated (ScratchState.id scratch) visual)
+  atomicModify' (#paste ?~ Paste ident index updated (Scratch.id scratch) visual)
   selectYankInScratch scratch index
   redraw
   void (async (waitAndCancelPaste ident))

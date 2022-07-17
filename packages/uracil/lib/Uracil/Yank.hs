@@ -1,7 +1,6 @@
 module Uracil.Yank where
 
 import Chiasma.Data.Ident (Ident, generateIdent, sameIdent)
-import qualified Control.Lens as Lens
 import qualified Data.Text as Text
 import Exon (exon)
 import qualified Log
@@ -126,8 +125,8 @@ yankByIndex ::
 yankByIndex index =
   stopNote (YankError.InvalidYankIndex index) . fetch =<< yanks
   where
-    fetch =
-      Lens.firstOf (Lens.element index)
+    fetch ys =
+      ys ^? ix index
 
 loadYank ::
   Members [Rpc, Log] r =>

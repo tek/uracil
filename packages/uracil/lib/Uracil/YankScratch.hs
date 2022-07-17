@@ -15,9 +15,8 @@ import Ribosome (
   msgpackArray,
   scratch,
   )
-import Ribosome.Api (currentCursor, setLine)
+import Ribosome.Api (currentCursor, setLine, vimCallFunction, windowSetOption)
 import qualified Ribosome.Float as Float
-import Ribosome.Host.Api.Effect (vimCallFunction, windowSetOption)
 import qualified Ribosome.Scratch as Scratch
 
 import qualified Uracil.Data.Env as Env (paste)
