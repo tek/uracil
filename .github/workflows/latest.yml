@@ -7,8 +7,8 @@ on:
       - 'main'
 
 jobs:
-  pre-release:
-    name: 'Release latest commit'
+  release:
+    name: 'Release'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2.4.0
@@ -30,6 +30,5 @@ jobs:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           automatic_release_tag: 'latest'
           prerelease: true
-          title: 'Executable built from the latest commit'
           files: |
             result/bin/uracil

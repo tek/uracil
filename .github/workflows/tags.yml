@@ -1,5 +1,5 @@
 ---
-name: "tagged-release"
+name: 'tagged-release'
 
 on:
   push:
@@ -7,8 +7,8 @@ on:
       - '*'
 
 jobs:
-  tagged-release:
-    name: 'Tagged Release'
+  release:
+    name: 'Release'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2.4.0
@@ -29,6 +29,5 @@ jobs:
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           prerelease: false
-          title: 'Executable built from the latest commit'
           files: |
             result/bin/uracil

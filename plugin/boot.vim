@@ -1,21 +1,11 @@
-let s:repo = fnamemodify(expand('<sfile>'), ":p:h:h")
+let s:repo = fnamemodify(expand('<sfile>'), ':p:h:h')
 let s:exe = s:repo . '/result/bin/uracil'
-let s:gh_exe = s:repo . '/github-exe'
 let s:build_cmd = [
-      \ 'nix',
-      \ '--option', 'extra-substituters', 'https://tek.cachix.org',
-      \ '--option', 'extra-trusted-public-keys', 'tek.cachix.org-1:+sdc73WFq8aEKnrVv5j/kuhmnW2hQJuqdPJF5SnaCBk=',
-      \ 'build', '.#uracil',
-      \ ]
-let s:fetch_cmd = [
-      \ 'curl',
-      \ '--no-progress-meter',
-      \ '--location',
-      \ '--create-dirs',
-      \ '--output',
-      \ s:gh_exe,
-      \ 'https://github.com/tek/uracil/releases/download/latest/uracil'
-      \ ]
+  \ 'nix',
+  \ '--option', 'extra-substituters', 'https://tek.cachix.org',
+  \ '--option', 'extra-trusted-public-keys', 'tek.cachix.org-1:+sdc73WFq8aEKnrVv5j/kuhmnW2hQJuqdPJF5SnaCBk=',
+  \ 'build', '.#uracil',
+  \ ]
 let s:errors = []
 
 function! s:run(exe) abort "{{{
@@ -66,6 +56,17 @@ function! s:fetch_bin() abort "{{{
         \ })
 endfunction "}}}
 
+let s:gh_exe = s:repo . '/github-exe'
+let s:fetch_cmd = [
+  \ 'curl',
+  \ '--no-progress-meter',
+  \ '--location',
+  \ '--create-dirs',
+  \ '--output',
+  \ s:gh_exe,
+  \ 'https://github.com/tek/uracil/releases/download/latest/uracil'
+  \ ]
+
 if filereadable(s:exe)
   call s:run(s:exe)
 elseif filereadable(s:gh_exe)
@@ -75,7 +76,8 @@ else
     echo 'Building uracil...'
     call s:nix_build()
   else
-    echo 'Fetching the urcail executable from github...'
+    echo 'Fetching the uracil executable from github...'
     call s:fetch_bin()
   endif
 endif
+
