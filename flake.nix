@@ -24,6 +24,9 @@
     };
     main = "uracil-test";
     exe = "uracil";
+    githubOrg = "tek";
+    cachixName = "tek";
+    cachixKey = "tek.cachix.org-1:+sdc73WFq8aEKnrVv5j/kuhmnW2hQJuqdPJF5SnaCBk=";
     depsFull = [ribosome];
     hpack = {
       packages = import ./ops/hpack.nix { inherit config lib; };
