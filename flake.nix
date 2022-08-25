@@ -1,12 +1,11 @@
 {
   description = "Neovim Register Manager";
 
-  inputs = {
-    ribosome.url = git+https://git.tryp.io/tek/ribosome;
-  };
+  inputs.ribosome.url = git+https://git.tryp.io/tek/ribosome;
 
   outputs = { ribosome, ... }:
   let
+
     overrides = { self, source, buildInputs, pkgs, hsLib, ... }:
     let
       inputs = buildInputs [pkgs.neovim pkgs.tmux pkgs.xterm];

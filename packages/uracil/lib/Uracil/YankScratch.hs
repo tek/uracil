@@ -15,7 +15,8 @@ import Ribosome (
   msgpackArray,
   scratch,
   )
-import Ribosome.Api (currentCursor, setLine, vimCallFunction, windowSetOption)
+import Ribosome.Api (nvimGetCurrentWin, nvimWinGetWidth, setLine, vimCallFunction, windowSetOption)
+import Ribosome.Data.FloatOptions (FloatAnchor (NE))
 import qualified Ribosome.Float as Float
 import qualified Ribosome.Scratch as Scratch
 
@@ -88,16 +89,18 @@ moveSign ::
 moveSign line =
   unplaceSign *> placeSign line
 
-yankScratchOptions :: NonEmpty Text -> Int -> Int -> ScratchOptions
-yankScratchOptions lines' row col =
+yankScratchOptions :: Int -> NonEmpty Text -> ScratchOptions
+yankScratchOptions winwidth lines' =
   scratch scratchId & #float ?~ float
   where
     float =
       def {
         Float.relative = Float.Win,
+        Float.anchor = NE,
         Float.width = width,
         Float.height = height,
-        Float.bufpos = Just (row, col)
+        Float.row = 2,
+        Float.col = winwidth - 2
       }
     width =
       min 40 (maximum (Text.length <$> lines')) + 5
@@ -109,8 +112,9 @@ showYankScratch ::
   Sem r ScratchState
 showYankScratch = do
   lines' <- yankLines
-  (row, col) <- currentCursor
-  scr <- Scratch.show (NonEmpty.toList lines') (yankScratchOptions lines' row col)
+  win <- nvimGetCurrentWin
+  winwidth <- nvimWinGetWidth win
+  scr <- Scratch.show (NonEmpty.toList lines') (yankScratchOptions winwidth lines')
   windowSetOption (Scratch.window scr) "cursorline" False
   windowSetOption (Scratch.window scr) "signcolumn" ("no" :: Text)
   scr <$ defineSign
