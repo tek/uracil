@@ -6,7 +6,7 @@ import qualified Data.Map.Strict as Map (fromList)
 import qualified Data.Text as Text (length)
 import Exon (exon)
 import Ribosome (
-  HandlerError,
+  Report,
   Rpc,
   Scratch,
   ScratchId,
@@ -108,7 +108,7 @@ yankScratchOptions winwidth lines' =
       max 1 $ min 10 (length lines')
 
 showYankScratch ::
-  Members [Rpc, Scratch, AtomicState Env, Stop YankError, Stop HandlerError] r =>
+  Members [Rpc, Scratch, AtomicState Env, Stop YankError, Stop Report] r =>
   Sem r ScratchState
 showYankScratch = do
   lines' <- yankLines
@@ -128,7 +128,7 @@ selectYankInScratch scr line =
   setLine (scr ^. #window) line *> moveSign line
 
 ensureYankScratch ::
-  Members [Rpc, Scratch, AtomicState Env, Stop YankError, Stop HandlerError] r =>
+  Members [Rpc, Scratch, AtomicState Env, Stop YankError, Stop Report] r =>
   Sem r ScratchState
 ensureYankScratch = do
   existing <- fmap join . traverse (Scratch.find . Paste.scratch) =<< atomicGets Env.paste

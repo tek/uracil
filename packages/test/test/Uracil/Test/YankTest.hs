@@ -2,7 +2,7 @@ module Uracil.Test.YankTest where
 
 import Polysemy.Test (UnitTest, assertEq, assertJust)
 import Ribosome.Api (nvimInput, setCurrentBufferContent)
-import Ribosome.Test (assertWait, testHandlersConf)
+import Ribosome.Test (assertWait, testPluginConf)
 
 import qualified Uracil.Data.Env as Env
 import Uracil.Data.Env (Env)
@@ -24,7 +24,7 @@ yankCount =
 
 test_yank :: UnitTest
 test_yank =
-  testHandlersConf @UracilProdStack (testConfig def) interpretUracilProdStack handlers do
+  testPluginConf @UracilProdStack (testConfig def) interpretUracilProdStack handlers do
     setCurrentBufferContent ["1", "2", "3"]
     assertEq 0 . length =<< atomicGets Env.yanks
     void (nvimInput "yy")

@@ -5,8 +5,9 @@ import Conc (Lock, Restoration, interpretAtomic, interpretLockReentrant, withAsy
 import Exon (exon)
 import qualified Log
 import Ribosome (
-  Errors,
+  Event,
   Execution (Async, Sync),
+  Reports,
   Rpc,
   RpcError,
   RpcHandler,
@@ -15,19 +16,11 @@ import Ribosome (
   Settings,
   rpcAutocmd,
   rpcCommand,
-  rpcErrorMessage,
+  rpcError,
   rpcFunction,
-  runNvimHandlersIO,
+  runNvimPluginIO,
   )
-import Ribosome.Menu (
-  MenuState,
-  MenusIOEffects,
-  NvimMenusIOEffects,
-  NvimRenderer,
-  interpretMenuStates,
-  interpretNvimMenusFinal,
-  )
-import Ribosome.Menu.Interpreter.MenuRenderer (interpretMenuRendererNvim)
+import Ribosome.Menu (MenuLoops, NvimMenus, interpretMenuLoops, interpretMenus)
 
 import Uracil.Data.Env (Env)
 import Uracil.Data.PasteLock (PasteLock)
@@ -43,15 +36,14 @@ type UracilStack =
   ]
 
 type UracilProdStack =
-  [
-    NvimRenderer Ident !! RpcError,
-    Scoped () (MenuState Ident)
-  ] ++ MenusIOEffects ++ NvimMenusIOEffects ++ UracilStack
+  '[
+    MenuLoops Ident
+  ] ++ NvimMenus ++ UracilStack
 
 handlers ::
   Members PasteStack r =>
   Members UracilProdStack r =>
-  Members [Errors, Mask Restoration, Race, Final IO] r =>
+  Members [Reports, Mask Restoration, Race, Final IO] r =>
   [RpcHandler r]
 handlers =
   [
@@ -71,7 +63,7 @@ prepare ::
   Members [Rpc !! RpcError, AtomicState Env, Log, Embed IO] r =>
   Sem r ()
 prepare =
-  syncClipboard !! \ e -> Log.error [exon|Couldn't sync the clipboard: #{rpcErrorMessage e}|]
+  syncClipboard !! \ e -> Log.error [exon|Couldn't sync the clipboard: #{rpcError e}|]
 
 interpretUracilStack ::
   Members [Rpc !! RpcError, Log, Resource, Mask Restoration, Race, Async, Embed IO] r =>
@@ -81,16 +73,15 @@ interpretUracilStack =
   interpretLockReentrant . untag
 
 interpretUracilProdStack ::
-  Members [Rpc !! RpcError, Settings !! SettingError, Scratch !! RpcError] r =>
+  Members [EventConsumer eres Event, Rpc !! RpcError, Settings !! SettingError, Scratch !! RpcError] r =>
   Members [Rpc !! RpcError, Log, Resource, Mask Restoration, Race, Async, Embed IO, Final IO] r =>
   InterpretersFor UracilProdStack r
 interpretUracilProdStack =
   interpretUracilStack .
-  interpretNvimMenusFinal .
-  interpretMenuStates .
-  interpretMenuRendererNvim .
+  interpretMenus .
+  interpretMenuLoops .
   withAsync_ prepare
 
 main :: IO ()
 main =
-  runNvimHandlersIO @UracilProdStack "uracil" interpretUracilProdStack handlers
+  runNvimPluginIO @UracilProdStack "uracil" interpretUracilProdStack handlers

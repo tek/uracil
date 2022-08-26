@@ -5,26 +5,27 @@ import qualified Data.Text as Text (length, take)
 import Exon (exon)
 import Ribosome (
   Handler,
-  HandlerError,
+  Report,
   Rpc,
   RpcError,
+  ScratchId (ScratchId),
   SettingError,
   Settings,
-  mapHandlerError,
-  resumeHandlerError,
+  mapReport,
+  resumeReport,
   )
 import Ribosome.Api (vimGetCurrentWindow, windowGetWidth)
+import Ribosome.Data.ScratchOptions (ScratchOptions (..))
 import Ribosome.Menu (
   Mappings,
   MenuItem,
-  MenuState,
+  MenuLoops,
   MenuWidget,
-  NvimMenu,
-  menu,
-  runStaticNvimMenu,
+  NvimMenuUi,
+  WindowMenu,
   simpleMenuItem,
+  staticNvimMenu,
   withFocus,
-  withMappings,
   )
 
 import Uracil.Data.Env (Env)
@@ -45,27 +46,23 @@ data YankAction =
   deriving stock (Eq, Show)
 
 menuAction ::
-  Member (MenuState Ident) r =>
   (Ident -> YankAction) ->
-  MenuWidget r YankAction
+  MenuWidget Ident r YankAction
 menuAction action = do
   withFocus (pure . action)
 
 menuYank ::
-  Member (MenuState Ident) r =>
-  MenuWidget r YankAction
+  MenuWidget Ident r YankAction
 menuYank =
   menuAction ActionLoad
 
 menuPaste ::
-  Member (MenuState Ident) r =>
-  MenuWidget r YankAction
+  MenuWidget Ident r YankAction
 menuPaste =
   menuAction ActionPaste
 
 menuPpaste ::
-  Member (MenuState Ident) r =>
-  MenuWidget r YankAction
+  MenuWidget Ident r YankAction
 menuPpaste =
   menuAction ActionPpaste
 
@@ -85,16 +82,18 @@ yankMenuItems width yanks' =
       width - 6
 
 yankMenuMappings ::
-  Member (MenuState Ident) r =>
-  Mappings r YankAction
+  Mappings Ident r YankAction
 yankMenuMappings =
   [("p", menuPaste), ("P", menuPpaste), ("y", menuYank)]
 
-type YankMenuStack =
-  NvimMenu Ident ++ [
+type YankMenuStack ui =
+  [
+    NvimMenuUi ui,
+    MenuLoops Ident,
     Settings !! SettingError,
     AtomicState Env,
-    Rpc !! RpcError
+    Rpc !! RpcError,
+    Log
   ]
 
 yankAction ::
@@ -107,27 +106,34 @@ yankAction = \case
   ActionPpaste i -> ppasteIdent i
 
 yankMenuWith ::
-  Members YankMenuStack r =>
-  Members [Rpc, Stop YankError, Stop HandlerError] r =>
+  Members (YankMenuStack ui) r =>
+  Members [Rpc, Stop YankError, Stop Report] r =>
   Maybe YankCommand ->
   Sem r ()
 yankMenuWith operators = do
   width <- windowGetWidth =<< vimGetCurrentWindow
   items <- stopNote YankError.EmptyHistory . nonEmpty . yankMenuItems width =<< yanksFor operators
-  result <- mapHandlerError @RpcError $ runStaticNvimMenu (toList items) [] def $ withMappings yankMenuMappings do
-    menu
-  handleResult "yank" yankAction result
+  result <- mapReport @RpcError $ staticNvimMenu (toList items) def scratchOptions yankMenuMappings
+  handleResult yankAction result
+  where
+    scratchOptions =
+      def {
+        name = ScratchId name,
+        filetype = Just name
+      }
+    name =
+      "uracil-yanks"
 
 uraYankMenuFor ::
-  Members YankMenuStack r =>
+  Members (YankMenuStack WindowMenu) r =>
   Maybe YankCommand ->
   Handler r ()
 uraYankMenuFor operators = do
-  resumeHandlerError @Rpc $ mapHandlerError @YankError do
+  resumeReport @Rpc $ mapReport @YankError do
     yankMenuWith operators
 
 uraYankMenu ::
-  Members YankMenuStack r =>
+  Members (YankMenuStack WindowMenu) r =>
   Handler r ()
 uraYankMenu =
   uraYankMenuFor Nothing

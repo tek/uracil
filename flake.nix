@@ -17,6 +17,7 @@
     base = ./.;
     inherit overrides;
     compat.enable = false;
+    devGhc.compiler = "ghc902";
     packages = {
       uracil = ./packages/uracil;
       uracil-test = ./packages/test;

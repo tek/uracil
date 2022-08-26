@@ -3,10 +3,10 @@ module Uracil.Test.DiagTest where
 import qualified Chiasma.Data.Ident as Ident (Ident (Str))
 import Log (Severity (Error))
 import Polysemy.Test (UnitTest, (===))
-import Ribosome (ErrorMessage (ErrorMessage))
+import Ribosome (Report (Report))
 import Ribosome.Api (currentBufferContent)
-import qualified Ribosome.Errors as Errors
 import qualified Ribosome.Register as Register
+import Ribosome.Report (storeReport)
 
 import Uracil.Data.Yank (Yank (Yank))
 import Uracil.Diag (uraDiag)
@@ -38,7 +38,7 @@ target = [
   "* yank: \"* v y",
   "  item3",
   "",
-  "## Errors",
+  "## Reports",
   "",
   "### yank",
   "* some",
@@ -60,7 +60,7 @@ test_diag :: UnitTest
 test_diag =
   uraTest do
     atomicModify' (#yanks .~ yanks)
-    Errors.store "yank" (ErrorMessage "error" ["some", "error"] Error)
+    storeReport "yank" (Report "error" ["some", "error"] Error)
     uraDiag
     content <- currentBufferContent
     target === content

@@ -3,7 +3,7 @@ module Uracil.Test.PasteTest where
 import qualified Chiasma.Data.Ident as Ident (Ident (Str))
 import qualified Data.List.NonEmpty as NonEmpty (toList)
 import Polysemy.Test (UnitTest, assertEq, unitTest, (===))
-import Ribosome (Rpc, Settings, mapHandlerError)
+import Ribosome (Rpc, Settings, mapReport)
 import Ribosome.Api (
   currentBufferContent,
   getreg,
@@ -137,7 +137,7 @@ test_commandPaste :: UnitTest
 test_commandPaste =
   uraTest do
     clearStar
-    mapHandlerError do
+    mapReport do
       storeEvent (RegEvent True "y" ["line 1"] unnamedRegister Register.Line)
       storeEvent (RegEvent True "d" ["line 2"] unnamedRegister Register.Line)
     setregLine unnamedRegister ["line 2"]

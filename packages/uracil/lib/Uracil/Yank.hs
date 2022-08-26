@@ -1,10 +1,11 @@
 module Uracil.Yank where
 
 import Chiasma.Data.Ident (Ident, generateIdent, sameIdent)
+import Data.List.Extra (nubOrdOn)
 import qualified Data.Text as Text
 import Exon (exon)
 import qualified Log
-import Ribosome (Handler, Register, RegisterType, Rpc, RpcError, SettingError, Settings, mapHandlerError)
+import Ribosome (Handler, Register, RegisterType, Rpc, RpcError, SettingError, Settings, mapReport)
 import Ribosome.Api (setregAs, vimGetVvar)
 import qualified Ribosome.Register as Register
 import qualified Ribosome.Settings as Settings
@@ -17,7 +18,6 @@ import Uracil.Data.YankCommand (YankCommand (YankCommand))
 import qualified Uracil.Data.YankError as YankError
 import Uracil.Data.YankError (YankError)
 import qualified Uracil.Settings as Settings
-import Data.List.Extra (nubOrdOn)
 
 validRegister :: Register -> Bool
 validRegister (Register.Special _) =
@@ -75,7 +75,7 @@ uraYank ::
   Members [Settings !! SettingError, Rpc !! RpcError, AtomicState Env, Log, Embed IO] r =>
   Handler r ()
 uraYank =
-  mapHandlerError @YankError do
+  mapReport @YankError do
     resume_ @RpcError (storeEventIfValid =<< vimGetVvar "event")
 
 allYanks ::

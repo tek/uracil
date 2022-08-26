@@ -13,14 +13,15 @@ import Polysemy.Chronos (ChronosTime)
 import Polysemy.Time (MilliSeconds, convert)
 import Ribosome (
   Handler,
-  HandlerError,
+  Report,
   Rpc,
   RpcError,
   Scratch,
   SettingError,
   Settings,
-  mapHandlerError,
-  resumeHandlerError,
+  mapReport,
+  pluginLogReports,
+  resumeReport,
   )
 import Ribosome.Api (
   getregList,
@@ -33,7 +34,6 @@ import Ribosome.Api (
   vimGetOption,
   visualModeActive,
   )
-import Ribosome.Errors (pluginHandlerErrors)
 import Ribosome.Register (Register, registerRepr)
 import qualified Ribosome.Register as Register (Register (..))
 import qualified Ribosome.Scratch as Scratch
@@ -207,7 +207,7 @@ logPaste update index visual yank =
       if visual then "visual" else "normal"
 
 insertPaste ::
-  Members [Scratch, AtomicState Env, Stop YankError, Stop HandlerError, Log, ChronosTime, Async, Embed IO] r =>
+  Members [Scratch, AtomicState Env, Stop YankError, Stop Report, Log, ChronosTime, Async, Embed IO] r =>
   Members [Settings !! SettingError, Settings, Rpc] r =>
   Bool ->
   (Yank -> Sem r ()) ->
@@ -259,7 +259,7 @@ syncClipboard = do
   traverse_ @[] (fetchClipboard lastTwoYanks skip) [Register.Special "*", Register.Special "\""]
 
 repaste ::
-  Members [Scratch, AtomicState Env, Stop YankError, Stop HandlerError, Log, ChronosTime, Async, Embed IO] r =>
+  Members [Scratch, AtomicState Env, Stop YankError, Stop Report, Log, ChronosTime, Async, Embed IO] r =>
   Members [Settings !! SettingError, Settings, Rpc] r =>
   (Yank -> Sem r ()) ->
   Paste ->
@@ -278,7 +278,7 @@ repaste paster (Paste _ index _ _ visual) = do
       when visual (normal "gv")
 
 startPaste ::
-  Members [Scratch, AtomicState Env, Stop YankError, Stop HandlerError, Log, ChronosTime, Async, Embed IO] r =>
+  Members [Scratch, AtomicState Env, Stop YankError, Stop Report, Log, ChronosTime, Async, Embed IO] r =>
   Members [Settings !! SettingError, Settings, Rpc] r =>
   Maybe YankCommand ->
   (Yank -> Sem r ()) ->
@@ -306,11 +306,11 @@ type PasteStack =
 pasteRequest ::
   Members PasteStack r =>
   Maybe YankCommand ->
-  (Yank -> Sem (Lock : Stop YankError : Scratch : Settings : Rpc : Stop HandlerError : r) ()) ->
+  (Yank -> Sem (Lock : Stop YankError : Scratch : Settings : Rpc : Stop Report : r) ()) ->
   Handler r ()
 pasteRequest commands paster =
-  pluginHandlerErrors $
-  mapHandlerError @YankError $
+  pluginLogReports $
+  mapReport @YankError $
   tag $ lock do
     maybe (startPaste commands paster) (repaste paster) =<< currentPaste
 
@@ -344,5 +344,5 @@ uraStopPaste ::
   Members [Scratch !! RpcError, AtomicState Env, Lock @@ PasteLock, Resource, Log] r =>
   Handler r ()
 uraStopPaste =
-  resumeHandlerError @Scratch $
+  resumeReport @Scratch $
   void (tag (lockOrSkip (whenM pasteActive cancelPaste)))

@@ -1,18 +1,17 @@
 module Uracil.Test.YankMenuTest where
 
 import qualified Chiasma.Data.Ident as Ident (Ident (Str))
-import Conc (ConcStack, withAsync_)
+import Conc (ChanConsumer, ConcStack)
 import qualified Data.List.NonEmpty as NonEmpty (toList)
 import Polysemy.Chronos (ChronosTime)
 import Polysemy.Test (TestError, UnitTest, assertLeft, unitTest, (===))
-import Ribosome (Rpc, RpcError, Scratch, SettingError, Settings)
-import Ribosome.Api (currentBufferContent, getreg, setCurrentBufferContent, setCurrentLine, syntheticInput, unnamedRegister)
-import Ribosome.Menu (PromptListening, interpretNvimMenuFinal, promptInput)
+import Ribosome (Event, Rpc, RpcError, Scratch, SettingError, Settings)
+import Ribosome.Api (currentBufferContent, getreg, setCurrentBufferContent, setCurrentLine, unnamedRegister)
+import Ribosome.Menu (promptInput)
+import Ribosome.Menu.Prompt (PromptEvent (Mapping))
 import qualified Ribosome.Register as Register
 import Ribosome.Test (testError, testHandler)
-import qualified Sync
 import Test.Tasty (TestTree, testGroup)
-import Time (MilliSeconds, convert)
 
 import Uracil.Data.Yank (Yank (Yank))
 import Uracil.Data.YankError (YankError)
@@ -37,61 +36,52 @@ items =
     item ident =
       Yank ident (Register.Special "*") Register.Line "y"
 
-withPromptInput ::
-  Members [Sync PromptListening, Rpc, Resource, Race, Async, Time t d] r =>
-  Maybe MilliSeconds ->
-  [Text] ->
-  Sem r a ->
-  Sem r a
-withPromptInput interval chrs =
-  withAsync_ (Sync.takeBlock *> syntheticInput (convert <$> interval) chrs)
-
 yankMenuTest ::
   Members ConcStack r =>
   Members UracilStack r =>
-  Members [ChronosTime, Log] r =>
+  Members [ChanConsumer Event, ChronosTime, Log] r =>
   Members [Rpc, Rpc !! RpcError, Scratch !! RpcError, Settings !! SettingError, Error TestError] r =>
-  [Text] ->
+  [PromptEvent] ->
   Sem r ()
-yankMenuTest chars =
+yankMenuTest events =
   testError @YankError do
     atomicModify' (#yanks .~ items)
     setCurrentBufferContent ["1", "2", "3"]
     setCurrentLine 1
-    interpretNvimMenuFinal $ promptInput chars do
+    promptInput events do
       testHandler (yankMenuWith Nothing)
 
-yankChars :: [Text]
-yankChars =
-  ["k", "k", "k", "y"]
+yankEvents :: [PromptEvent]
+yankEvents =
+  Mapping <$> ["k", "k", "k", "y"]
 
 test_yankMenuYank :: UnitTest
 test_yankMenuYank =
   uraTest do
-    yankMenuTest yankChars
+    yankMenuTest yankEvents
     assertLeft (NonEmpty.toList targetItem) =<< getreg unnamedRegister
 
-pasteChars :: [Text]
-pasteChars =
-  ["k", "k", "k", "p"]
+pasteEvents :: [PromptEvent]
+pasteEvents =
+  Mapping <$> ["k", "k", "k", "p"]
 
 test_yankMenuPaste :: UnitTest
 test_yankMenuPaste =
   uraTest do
-    yankMenuTest pasteChars
+    yankMenuTest pasteEvents
     (target ===) =<< currentBufferContent
   where
     target =
       ["1", "2"] <> NonEmpty.toList targetItem <> ["3"]
 
-ppasteChars :: [Text]
-ppasteChars =
-  ["k", "k", "k", "P"]
+ppasteEvents :: [PromptEvent]
+ppasteEvents =
+  Mapping <$> ["k", "k", "k", "P"]
 
 test_yankMenuPpaste :: UnitTest
 test_yankMenuPpaste =
   uraTest do
-    yankMenuTest ppasteChars
+    yankMenuTest ppasteEvents
     (target ===) =<< currentBufferContent
   where
     target =
