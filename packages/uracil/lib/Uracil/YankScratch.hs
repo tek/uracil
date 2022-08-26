@@ -103,7 +103,7 @@ yankScratchOptions winwidth lines' =
         Float.col = winwidth - 2
       }
     width =
-      min 40 (maximum (Text.length <$> lines')) + 5
+      min (fromMaybe 40 (div winwidth 2)) (maximum (Text.length <$> lines')) + 5
     height =
       max 1 $ min 10 (length lines')
 
