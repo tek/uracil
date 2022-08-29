@@ -4,7 +4,6 @@ import Chiasma.Data.Ident (Ident, generateIdent)
 import qualified Chronos
 import Conc (Lock, lock, lockOrSkip)
 import Control.Monad.Extra (andM)
-import Data.Generics.Labels ()
 import Data.List (notElem)
 import qualified Data.Text as Text (isInfixOf)
 import Exon (exon)
@@ -20,13 +19,13 @@ import Ribosome (
   SettingError,
   Settings,
   mapReport,
+  noautocmd,
   pluginLogReports,
   resumeReport,
   )
 import Ribosome.Api (
-  getregList,
+  getregLines,
   getregtype,
-  noautocmdNormal,
   normal,
   redraw,
   undo,
@@ -51,7 +50,7 @@ import Uracil.Data.YankError (YankError)
 import qualified Uracil.Data.YankError as YankError (YankError (EmptyHistory))
 import qualified Uracil.Settings as Settings (pasteTimeout, pasteTimeoutMillis)
 import Uracil.Yank (allYanks, loadYank, setCommand, storeYank, yankByIdent, yankByIndex, yanks)
-import Uracil.YankScratch (ensureYankScratch, killYankScratch, selectYankInScratch)
+import Uracil.YankScratch (ensureYankScratch, deleteYankScratch, selectYankInScratch)
 
 defaultRegister ::
   Member Rpc r =>
@@ -74,7 +73,7 @@ pasteWith ::
 pasteWith cmd yank = do
   register <- defaultRegister
   loadYank register yank
-  resume_ (noautocmdNormal (registerRepr register <> cmd))
+  resume_ (noautocmd $ normal (registerRepr register <> cmd))
   loadYank unnamedRegister yank
 
 paste ::
@@ -163,7 +162,7 @@ cancelPaste = do
   Log.debug "cancelling paste"
   movePastedToHistoryHead
   atomicModify' (#paste .~ Nothing)
-  killYankScratch
+  deleteYankScratch
   setCommand Nothing
 
 cancelPasteAfter ::
@@ -242,7 +241,7 @@ fetchClipboard ::
   Register ->
   Sem r ()
 fetchClipboard lastTwoYanks skip reg =
-  traverse_ check . nonEmpty =<< getregList reg
+  traverse_ check . nonEmpty =<< getregLines reg
   where
     check content =
       when (freshYank content) (pullRegister reg content)
@@ -284,7 +283,7 @@ startPaste ::
   (Yank -> Sem r ()) ->
   Sem r ()
 startPaste command paster =
-  killYankScratch *>
+  deleteYankScratch *>
   syncClipboard *>
   setCommand command *>
   insertPaste False paster 0
