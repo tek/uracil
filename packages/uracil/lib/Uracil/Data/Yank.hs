@@ -18,7 +18,7 @@ data Yank =
   deriving stock (Eq, Show)
 
 instance Identifiable Yank where
-  identify = ident
+  identify = (.ident)
 
 instance Pretty Yank where
   pretty (Yank _ r rt (YankCommand op) t) =
@@ -33,4 +33,4 @@ newtype YankDup =
 
 instance Ord YankDup where
   compare (YankDup l) (YankDup r) =
-    (comparing regtype <> comparing content) l r
+    (comparing (.regtype) <> comparing (.content)) l r

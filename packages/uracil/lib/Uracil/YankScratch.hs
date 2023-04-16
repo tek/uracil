@@ -4,16 +4,7 @@ import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as Text
 import Exon (exon)
-import Ribosome (
-  Report,
-  Rpc,
-  Scratch,
-  ScratchId,
-  ScratchOptions,
-  ScratchState,
-  msgpackArray,
-  scratch,
-  )
+import Ribosome (Report, Rpc, Scratch, ScratchId, ScratchOptions, ScratchState, msgpackArray, scratch)
 import Ribosome.Api (nvimGetCurrentWin, nvimWinGetWidth, setLine, vimCallFunction, windowSetOption)
 import Ribosome.Data.FloatOptions (FloatAnchor (NE))
 import qualified Ribosome.Float as Float
@@ -35,7 +26,7 @@ yankLines ::
   Members [AtomicState Env, Stop YankError] r =>
   Sem r (NonEmpty Text)
 yankLines = do
-  lines' <- fmap (formatLine . Yank.content) <$> yanks
+  lines' <- fmap (formatLine . (.content)) <$> yanks
   stopNote YankError.EmptyHistory (nonEmpty lines')
   where
     formatLine = \case
@@ -100,7 +91,7 @@ yankScratchOptions winwidth lines' =
         Float.col = winwidth - 2
       }
     width =
-      min (fromMaybe 40 (div winwidth 2)) (maximum (Text.length <$> lines')) + 5
+      min (fromMaybe 40 (div winwidth 2)) (fromMaybe 0 (maximum (Text.length <$> lines'))) + 5
     height =
       max 1 $ min 10 (length lines')
 
@@ -112,8 +103,8 @@ showYankScratch = do
   win <- nvimGetCurrentWin
   winwidth <- nvimWinGetWidth win
   scr <- Scratch.show (NonEmpty.toList lines') (yankScratchOptions winwidth lines')
-  windowSetOption (Scratch.window scr) "cursorline" False
-  windowSetOption (Scratch.window scr) "signcolumn" ("no" :: Text)
+  windowSetOption scr.window "cursorline" False
+  windowSetOption scr.window "signcolumn" ("no" :: Text)
   scr <$ defineSign
 
 selectYankInScratch ::
@@ -128,7 +119,7 @@ ensureYankScratch ::
   Members [Rpc, Scratch, AtomicState Env, Stop YankError, Stop Report] r =>
   Sem r ScratchState
 ensureYankScratch = do
-  existing <- fmap join . traverse (Scratch.find . Paste.scratch) =<< atomicGets Env.paste
+  existing <- fmap join . traverse (Scratch.find . (.scratch)) =<< atomicGets (.paste)
   maybe showYankScratch pure existing
 
 deleteYankScratch ::

@@ -23,16 +23,7 @@ import Ribosome (
   pluginLogReports,
   resumeReport,
   )
-import Ribosome.Api (
-  getregLines,
-  getregtype,
-  normal,
-  redraw,
-  undo,
-  unnamedRegister,
-  vimGetOption,
-  visualModeActive,
-  )
+import Ribosome.Api (getregLines, getregtype, normal, redraw, undo, unnamedRegister, vimGetOption, visualModeActive)
 import Ribosome.Register (Register, registerRepr)
 import qualified Ribosome.Register as Register (Register (..))
 import qualified Ribosome.Scratch as Scratch
@@ -50,7 +41,7 @@ import Uracil.Data.YankError (YankError)
 import qualified Uracil.Data.YankError as YankError (YankError (EmptyHistory))
 import qualified Uracil.Settings as Settings (pasteTimeout, pasteTimeoutMillis)
 import Uracil.Yank (allYanks, loadYank, setCommand, storeYank, yankByIdent, yankByIndex, yanks)
-import Uracil.YankScratch (ensureYankScratch, deleteYankScratch, selectYankInScratch)
+import Uracil.YankScratch (deleteYankScratch, ensureYankScratch, selectYankInScratch)
 
 defaultRegister ::
   Member Rpc r =>
@@ -108,7 +99,7 @@ currentPaste ::
   Member (AtomicState Env) r =>
   Sem r (Maybe Paste)
 currentPaste =
-  atomicGets Env.paste
+  atomicGets (.paste)
 
 pasteActive ::
   Member (AtomicState Env) r =>
@@ -220,7 +211,7 @@ insertPaste isUpdate paster index = do
   scratch <- ensureYankScratch
   updated <- Time.now
   ident <- generateIdent
-  atomicModify' (#paste ?~ Paste ident index updated (Scratch.id scratch) visual)
+  atomicModify' (#paste ?~ Paste ident index updated scratch.id visual)
   selectYankInScratch scratch index
   redraw
   void (async (waitAndCancelPaste ident))
@@ -252,8 +243,8 @@ syncClipboard ::
   Members [Rpc, AtomicState Env, Log, Embed IO] r =>
   Sem r ()
 syncClipboard = do
-  lastTwoYanks <- take 2 . fmap Yank.content <$> allYanks
-  skip <- atomicGets Env.skip
+  lastTwoYanks <- take 2 . fmap (.content) <$> allYanks
+  skip <- atomicGets (.skip)
   atomicModify' (#skip .~ Nothing)
   traverse_ @[] (fetchClipboard lastTwoYanks skip) [Register.Special "*", Register.Special "\""]
 

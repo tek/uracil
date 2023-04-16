@@ -1,7 +1,7 @@
 module Uracil.Test.YankMenuTest where
 
 import qualified Chiasma.Data.Ident as Ident (Ident (Str))
-import Conc (ChanConsumer, ConcStack)
+import Conc (ConcStack)
 import qualified Data.List.NonEmpty as NonEmpty (toList)
 import Polysemy.Chronos (ChronosTime)
 import Polysemy.Test (TestError, UnitTest, assertLeft, unitTest, (===))
@@ -39,7 +39,7 @@ items =
 yankMenuTest ::
   Members ConcStack r =>
   Members UracilStack r =>
-  Members [ChanConsumer Event, ChronosTime, Log] r =>
+  Members [EventConsumer Event, ChronosTime, Log] r =>
   Members [Rpc, Rpc !! RpcError, Scratch !! RpcError, Settings !! SettingError, Error TestError] r =>
   [PromptEvent] ->
   Sem r ()

@@ -1,6 +1,6 @@
 cabal-version: 2.2
 
--- This file has been generated from package.yaml by hpack version 0.34.6.
+-- This file has been generated from package.yaml by hpack version 0.35.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -13,10 +13,13 @@ homepage:       https://github.com/tek/uracil#readme
 bug-reports:    https://github.com/tek/uracil/issues
 author:         Torsten Schmits
 maintainer:     hackage@tryp.io
-copyright:      2022 Torsten Schmits
+copyright:      2023 Torsten Schmits
 license:        BSD-2-Clause-Patent
 license-file:   LICENSE
 build-type:     Simple
+extra-source-files:
+    readme.md
+    changelog.md
 
 source-repository head
   type: git
@@ -45,79 +48,49 @@ library
   default-extensions:
       AllowAmbiguousTypes
       ApplicativeDo
-      BangPatterns
-      BinaryLiterals
       BlockArguments
-      ConstraintKinds
       DataKinds
       DefaultSignatures
       DeriveAnyClass
-      DeriveDataTypeable
-      DeriveFoldable
-      DeriveFunctor
-      DeriveGeneric
-      DeriveLift
-      DeriveTraversable
       DerivingStrategies
       DerivingVia
       DisambiguateRecordFields
-      DoAndIfThenElse
       DuplicateRecordFields
-      EmptyCase
-      EmptyDataDecls
-      ExistentialQuantification
-      FlexibleContexts
-      FlexibleInstances
       FunctionalDependencies
       GADTs
-      GeneralizedNewtypeDeriving
-      InstanceSigs
-      KindSignatures
       LambdaCase
       LiberalTypeSynonyms
-      MultiParamTypeClasses
       MultiWayIf
-      NamedFieldPuns
       OverloadedLabels
       OverloadedLists
       OverloadedStrings
       PackageImports
       PartialTypeSignatures
-      PatternGuards
       PatternSynonyms
-      PolyKinds
       QuantifiedConstraints
       QuasiQuotes
-      RankNTypes
       RecordWildCards
       RecursiveDo
       RoleAnnotations
-      ScopedTypeVariables
-      StandaloneDeriving
       TemplateHaskell
-      TupleSections
-      TypeApplications
       TypeFamilies
       TypeFamilyDependencies
-      TypeOperators
-      TypeSynonymInstances
       UndecidableInstances
       UnicodeSyntax
       ViewPatterns
-      StandaloneKindSignatures
-      OverloadedLabels
-  ghc-options: -Wall -Wredundant-constraints -Wincomplete-uni-patterns -Wmissing-deriving-strategies -Widentities -Wunused-packages -fplugin=Polysemy.Plugin
+      OverloadedRecordDot
+      NoFieldSelectors
+  ghc-options: -Wall -Widentities -Wincomplete-uni-patterns -Wmissing-deriving-strategies -Wredundant-constraints -Wunused-type-patterns -Wunused-packages -fplugin=Polysemy.Plugin
   build-depends:
-      base >=4.12 && <5
+      base ==4.*
     , chiasma
     , chronos
     , exon
     , extra
-    , generic-lens
     , polysemy
     , polysemy-chronos
     , polysemy-plugin
-    , prelate >=0.1
+    , prelate >=0.5.1 && <0.6
     , prettyprinter
     , ribosome
     , ribosome-menu
@@ -125,7 +98,7 @@ library
       base hiding (Prelude)
     , prelate (Prelate as Prelude)
     , prelate hiding (Prelate)
-  default-language: Haskell2010
+  default-language: GHC2021
 
 executable uracil
   main-is: Main.hs
@@ -134,76 +107,113 @@ executable uracil
   default-extensions:
       AllowAmbiguousTypes
       ApplicativeDo
-      BangPatterns
-      BinaryLiterals
       BlockArguments
-      ConstraintKinds
       DataKinds
       DefaultSignatures
       DeriveAnyClass
-      DeriveDataTypeable
-      DeriveFoldable
-      DeriveFunctor
-      DeriveGeneric
-      DeriveLift
-      DeriveTraversable
       DerivingStrategies
       DerivingVia
       DisambiguateRecordFields
-      DoAndIfThenElse
       DuplicateRecordFields
-      EmptyCase
-      EmptyDataDecls
-      ExistentialQuantification
-      FlexibleContexts
-      FlexibleInstances
       FunctionalDependencies
       GADTs
-      GeneralizedNewtypeDeriving
-      InstanceSigs
-      KindSignatures
       LambdaCase
       LiberalTypeSynonyms
-      MultiParamTypeClasses
       MultiWayIf
-      NamedFieldPuns
       OverloadedLabels
       OverloadedLists
       OverloadedStrings
       PackageImports
       PartialTypeSignatures
-      PatternGuards
       PatternSynonyms
-      PolyKinds
       QuantifiedConstraints
       QuasiQuotes
-      RankNTypes
       RecordWildCards
       RecursiveDo
       RoleAnnotations
-      ScopedTypeVariables
-      StandaloneDeriving
       TemplateHaskell
-      TupleSections
-      TypeApplications
       TypeFamilies
       TypeFamilyDependencies
-      TypeOperators
-      TypeSynonymInstances
       UndecidableInstances
       UnicodeSyntax
       ViewPatterns
-      StandaloneKindSignatures
-      OverloadedLabels
-  ghc-options: -Wall -Wredundant-constraints -Wincomplete-uni-patterns -Wmissing-deriving-strategies -Widentities -Wunused-packages -fplugin=Polysemy.Plugin -threaded -rtsopts -with-rtsopts=-N
+      OverloadedRecordDot
+      NoFieldSelectors
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall -Widentities -Wincomplete-uni-patterns -Wmissing-deriving-strategies -Wredundant-constraints -Wunused-type-patterns -Wunused-packages -fplugin=Polysemy.Plugin
   build-depends:
-      base >=4.12 && <5
+      base ==4.*
     , polysemy
     , polysemy-plugin
-    , prelate >=0.1
+    , prelate >=0.5.1 && <0.6
     , uracil
   mixins:
       base hiding (Prelude)
     , prelate (Prelate as Prelude)
     , prelate hiding (Prelate)
-  default-language: Haskell2010
+  default-language: GHC2021
+
+test-suite uracil-test
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      Uracil.Test.ContextPasteTest
+      Uracil.Test.DiagTest
+      Uracil.Test.PasteTest
+      Uracil.Test.Run
+      Uracil.Test.YankMenuTest
+      Uracil.Test.YankTest
+  hs-source-dirs:
+      test
+  default-extensions:
+      AllowAmbiguousTypes
+      ApplicativeDo
+      BlockArguments
+      DataKinds
+      DefaultSignatures
+      DeriveAnyClass
+      DerivingStrategies
+      DerivingVia
+      DisambiguateRecordFields
+      DuplicateRecordFields
+      FunctionalDependencies
+      GADTs
+      LambdaCase
+      LiberalTypeSynonyms
+      MultiWayIf
+      OverloadedLabels
+      OverloadedLists
+      OverloadedStrings
+      PackageImports
+      PartialTypeSignatures
+      PatternSynonyms
+      QuantifiedConstraints
+      QuasiQuotes
+      RecordWildCards
+      RecursiveDo
+      RoleAnnotations
+      TemplateHaskell
+      TypeFamilies
+      TypeFamilyDependencies
+      UndecidableInstances
+      UnicodeSyntax
+      ViewPatterns
+      OverloadedRecordDot
+      NoFieldSelectors
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall -Widentities -Wincomplete-uni-patterns -Wmissing-deriving-strategies -Wredundant-constraints -Wunused-type-patterns -Wunused-packages -fplugin=Polysemy.Plugin
+  build-depends:
+      base ==4.*
+    , chiasma
+    , polysemy
+    , polysemy-plugin
+    , polysemy-test
+    , prelate >=0.5.1 && <0.6
+    , ribosome
+    , ribosome-menu
+    , ribosome-test
+    , tasty
+    , uracil
+  mixins:
+      base hiding (Prelude)
+    , prelate (Prelate as Prelude)
+    , prelate hiding (Prelate)
+  default-language: GHC2021

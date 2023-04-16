@@ -14,19 +14,19 @@ newest ::
   Member (AtomicState Env) r =>
   Sem r (Maybe (NonEmpty Text))
 newest =
-  fmap Yank.content . head <$> atomicGets Env.yanks
+  fmap (.content) . head <$> atomicGets (.yanks)
 
 yankCount ::
   Member (AtomicState Env) r =>
   Sem r Int
 yankCount =
-  length <$> atomicGets Env.yanks
+  length <$> atomicGets (.yanks)
 
 test_yank :: UnitTest
 test_yank =
   testPluginConf @UracilProdStack (testConfig def) interpretUracilProdStack handlers do
     setCurrentBufferContent ["1", "2", "3"]
-    assertEq 0 . length =<< atomicGets Env.yanks
+    assertEq 0 . length =<< atomicGets (.yanks)
     void (nvimInput "yy")
     assertWait yankCount (assertEq 1)
     void (nvimInput "jyy")

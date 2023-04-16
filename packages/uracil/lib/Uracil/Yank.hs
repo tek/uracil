@@ -38,7 +38,7 @@ storeYank regtype register operator content = do
   ident <- generateIdent
   let yank = Yank ident register regtype operator content
   Log.debug [exon|store: #{show yank}|]
-  atomicModify' \ s -> s { Env.yanks = nubOrdOn YankDup (yank : Env.yanks s) }
+  atomicModify' \ s -> s { Env.yanks = nubOrdOn YankDup (yank : s.yanks) }
 
 skipEvent ::
   Members [Settings !! SettingError, AtomicState Env, Log, Embed IO] r =>
@@ -62,7 +62,7 @@ eventValid ::
   Member (AtomicState Env) r =>
   Sem r Bool
 eventValid =
-  isNothing <$> atomicGets Env.paste
+  isNothing <$> atomicGets (.paste)
 
 storeEventIfValid ::
   Members [Settings !! SettingError, AtomicState Env, Stop YankError, Log, Embed IO] r =>
@@ -82,7 +82,7 @@ allYanks ::
   Member (AtomicState Env) r =>
   Sem r [Yank]
 allYanks =
-  atomicGets Env.yanks
+  atomicGets (.yanks)
 
 matchOperator ::
   Maybe YankCommand ->
@@ -103,20 +103,20 @@ yanksFor ::
   Maybe YankCommand ->
   Sem r [Yank]
 yanksFor cmd = do
-  atomicGets (filter (matchOperator cmd) . Env.yanks)
+  atomicGets (filter (matchOperator cmd) . (.yanks))
 
 yanks ::
   Member (AtomicState Env) r =>
   Sem r [Yank]
 yanks =
-  yanksFor =<< atomicGets Env.command
+  yanksFor =<< atomicGets (.command)
 
 yankByIdent ::
   Members [AtomicState Env, Stop YankError] r =>
   Ident ->
   Sem r Yank
 yankByIdent ident =
-  stopNote (YankError.NoSuchYank ident) =<< atomicGets (head . filter (sameIdent ident) . Env.yanks)
+  stopNote (YankError.NoSuchYank ident) =<< atomicGets (head . filter (sameIdent ident) . (.yanks))
 
 yankByIndex ::
   Members [AtomicState Env, Stop YankError] r =>

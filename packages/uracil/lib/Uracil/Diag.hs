@@ -77,7 +77,7 @@ diagnosticsData ::
   Sem r (Doc a)
 diagnosticsData = do
   errors <- errorDiagnostics <$> storedReports
-  yanks <- atomicGets (yanksDiagnostics . Env.yanks)
+  yanks <- atomicGets (yanksDiagnostics . (.yanks))
   pure (headline <> line <> line <> yanks <> line <> line <> errors)
   where
     headline =

@@ -3,28 +3,20 @@ module Uracil.YankMenu where
 import Chiasma.Data.Ident (Ident)
 import qualified Data.Text as Text (length, take)
 import Exon (exon)
-import Ribosome (
-  Handler,
-  Report,
-  Rpc,
-  RpcError,
-  ScratchId (ScratchId),
-  SettingError,
-  Settings,
-  mapReport,
-  resumeReport,
-  )
+import Ribosome (Handler, Report, Rpc, RpcError, ScratchId (ScratchId), SettingError, Settings, mapReport, resumeReport)
 import Ribosome.Api (vimGetCurrentWindow, windowGetWidth)
 import Ribosome.Data.ScratchOptions (ScratchOptions (..))
 import Ribosome.Menu (
+  Filter (Fuzzy),
   Mappings,
   MenuItem,
-  MenuLoops,
   MenuWidget,
-  NvimMenuUi,
+  ModalState,
+  ModalWindowMenus,
   WindowMenu,
+  modal,
   simpleMenuItem,
-  staticNvimMenu,
+  staticWindowMenu,
   withFocus,
   )
 
@@ -47,22 +39,22 @@ data YankAction =
 
 menuAction ::
   (Ident -> YankAction) ->
-  MenuWidget Ident r YankAction
+  MenuWidget (ModalState Ident) r YankAction
 menuAction action = do
   withFocus (pure . action)
 
 menuYank ::
-  MenuWidget Ident r YankAction
+  MenuWidget (ModalState Ident) r YankAction
 menuYank =
   menuAction ActionLoad
 
 menuPaste ::
-  MenuWidget Ident r YankAction
+  MenuWidget (ModalState Ident) r YankAction
 menuPaste =
   menuAction ActionPaste
 
 menuPpaste ::
-  MenuWidget Ident r YankAction
+  MenuWidget (ModalState Ident) r YankAction
 menuPpaste =
   menuAction ActionPpaste
 
@@ -81,15 +73,13 @@ yankMenuItems width yanks' =
     maxlen =
       width - 6
 
-yankMenuMappings ::
-  Mappings Ident r YankAction
+yankMenuMappings :: Mappings (ModalState Ident) r YankAction
 yankMenuMappings =
   [("p", menuPaste), ("P", menuPpaste), ("y", menuYank)]
 
 type YankMenuStack ui =
   [
-    NvimMenuUi ui,
-    MenuLoops Ident,
+    ModalWindowMenus Ident !! RpcError,
     Settings !! SettingError,
     AtomicState Env,
     Rpc !! RpcError,
@@ -113,7 +103,7 @@ yankMenuWith ::
 yankMenuWith operators = do
   width <- windowGetWidth =<< vimGetCurrentWindow
   items <- stopNote YankError.EmptyHistory . nonEmpty . yankMenuItems width =<< yanksFor operators
-  result <- mapReport @RpcError $ staticNvimMenu (toList items) def scratchOptions yankMenuMappings
+  result <- mapReport @RpcError $ staticWindowMenu (toList items) (modal Fuzzy) (def & #items .~ scratchOptions) yankMenuMappings
   handleResult yankAction result
   where
     scratchOptions =

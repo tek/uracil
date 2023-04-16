@@ -1,7 +1,7 @@
 module Uracil.Plugin where
 
 import Chiasma.Data.Ident (Ident)
-import Conc (Lock, Restoration, interpretAtomic, interpretLockReentrant, withAsync_)
+import Conc (Lock, interpretAtomic, interpretLockReentrant, withAsync_)
 import Exon (exon)
 import qualified Log
 import Ribosome (
@@ -20,7 +20,7 @@ import Ribosome (
   rpcFunction,
   runNvimPluginIO,
   )
-import Ribosome.Menu (MenuLoops, NvimMenus, interpretMenuLoops, interpretMenus)
+import Ribosome.Menu (ModalWindowMenus, NvimMenus, interpretMenus, interpretWindowMenu)
 
 import Uracil.Data.Env (Env)
 import Uracil.Data.PasteLock (PasteLock)
@@ -37,13 +37,13 @@ type UracilStack =
 
 type UracilProdStack =
   '[
-    MenuLoops Ident
+    ModalWindowMenus Ident !! RpcError
   ] ++ NvimMenus ++ UracilStack
 
 handlers ::
   Members PasteStack r =>
   Members UracilProdStack r =>
-  Members [Reports, Mask Restoration, Race, Final IO] r =>
+  Members [Reports, Mask, Race, Final IO] r =>
   [RpcHandler r]
 handlers =
   [
@@ -66,20 +66,20 @@ prepare =
   syncClipboard !! \ e -> Log.error [exon|Couldn't sync the clipboard: #{rpcError e}|]
 
 interpretUracilStack ::
-  Members [Rpc !! RpcError, Log, Resource, Mask Restoration, Race, Async, Embed IO] r =>
+  Members [Rpc !! RpcError, Log, Resource, Mask, Race, Async, Embed IO] r =>
   InterpretersFor UracilStack r
 interpretUracilStack =
   interpretAtomic def .
   interpretLockReentrant . untag
 
 interpretUracilProdStack ::
-  Members [EventConsumer eres Event, Rpc !! RpcError, Settings !! SettingError, Scratch !! RpcError] r =>
-  Members [Rpc !! RpcError, Log, Resource, Mask Restoration, Race, Async, Embed IO, Final IO] r =>
+  Members [EventConsumer Event, Rpc !! RpcError, Settings !! SettingError, Scratch !! RpcError] r =>
+  Members [Rpc !! RpcError, Log, Resource, Mask, Race, Async, Embed IO, Final IO] r =>
   InterpretersFor UracilProdStack r
 interpretUracilProdStack =
   interpretUracilStack .
+  interpretWindowMenu .
   interpretMenus .
-  interpretMenuLoops .
   withAsync_ prepare
 
 main :: IO ()
