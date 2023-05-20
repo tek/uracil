@@ -1,7 +1,8 @@
 module Uracil.YankMenu where
 
 import Chiasma.Data.Ident (Ident)
-import qualified Data.Text as Text (length, take)
+import Data.Char (isSpace)
+import qualified Data.Text as Text
 import Exon (exon)
 import Ribosome (Handler, Report, Rpc, RpcError, ScratchId (ScratchId), SettingError, Settings, mapReport, resumeReport)
 import Ribosome.Api (vimGetCurrentWindow, windowGetWidth)
@@ -58,20 +59,21 @@ menuPpaste ::
 menuPpaste =
   menuAction ActionPpaste
 
+menuItem :: Int -> Yank -> p -> MenuItem Ident
+menuItem width (Yank ident _ _ _ ls) _ =
+  simpleMenuItem ident (Text.take maxlen display <> dots <> count)
+  where
+    dots = if Text.length display > maxlen then "..." else ""
+    count | 0 <- len = ""
+          | otherwise = [exon| [#{show len}]|]
+    len = length ls
+    maxlen = width - 9
+    display = fromMaybe "<whitespace>" (find displayable ls)
+    displayable l = not (Text.null l) && Text.any (not . isSpace) l
+
 yankMenuItems :: Int -> [Yank] -> [MenuItem Ident]
 yankMenuItems width yanks' =
-  uncurry menuItem <$> zip yanks' [(0 :: Int)..]
-  where
-    menuItem (Yank ident _ _ _ (line' :| rest)) _ =
-      simpleMenuItem ident (Text.take maxlen line' <> dots line' <> count rest)
-    dots line' =
-      if Text.length line' > maxlen then "..." else ""
-    count [] =
-      ""
-    count ls =
-      [exon| [#{show (length ls + 1)}]|]
-    maxlen =
-      width - 6
+  uncurry (menuItem width) <$> zip yanks' [(0 :: Int)..]
 
 yankMenuMappings :: Mappings (ModalState Ident) r YankAction
 yankMenuMappings =

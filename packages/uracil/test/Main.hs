@@ -10,7 +10,7 @@ import Uracil.Test.YankTest (test_yank)
 
 tests :: TestTree
 tests =
-  testGroup "all" [
+  testGroup "uracil" [
     unitTest "context paste" test_contextPaste,
     unitTest "diagnostics" test_diag,
     test_paste,

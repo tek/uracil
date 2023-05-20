@@ -12,10 +12,6 @@
     compat.enable = false;
     hackage.versionFile = "ops/version.nix";
 
-    overrides = { self, source, buildInputs, pkgs, hsLib, ... }: {
-      uracil = buildInputs [pkgs.neovim pkgs.tmux pkgs.xterm];
-    };
-
     cabal = {
       license = "BSD-2-Clause-Patent";
       license-file = "LICENSE";
@@ -66,11 +62,12 @@
           "ribosome-menu"
           "ribosome-test"
           "tasty"
-          "uracil"
         ];
       };
 
       executable.enable = true;
+
+      buildInputs = [config.pkgs.neovim config.pkgs.tmux config.pkgs.xterm];
 
     };
 
