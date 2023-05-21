@@ -64,7 +64,7 @@ menuItem width (Yank ident _ _ _ ls) _ =
   simpleMenuItem ident (Text.take maxlen display <> dots <> count)
   where
     dots = if Text.length display > maxlen then "..." else ""
-    count | 0 <- len = ""
+    count | len <= 1 = ""
           | otherwise = [exon| [#{show len}]|]
     len = length ls
     maxlen = width - 9
