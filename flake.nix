@@ -3,11 +3,9 @@
 
   inputs = {
     ribosome.url = "git+https://git.tryp.io/tek/ribosome";
-    hls.url = "github:haskell/haskell-language-server?ref=1.9.0.0";
   };
 
-  outputs = {ribosome, hls, ...}: ribosome.lib.pro ({config, ...}: {
-    compiler = "ghc925";
+  outputs = {ribosome, ...}: ribosome.lib.pro ({config, ...}: {
     depsFull = [ribosome];
     compat.enable = false;
     hackage.versionFile = "ops/version.nix";
@@ -27,7 +25,7 @@
         enable = true;
         package = {
           name = "prelate";
-          version = "^>= 0.5.1";
+          version = "^>= 0.6";
         };
         module = "Prelate";
       };
@@ -72,7 +70,6 @@
     };
 
     envs.dev.buildInputs = with config.pkgs; [pkgs.neovim pkgs.tmux];
-    envs.hls.hls.package = hls.packages.${config.system}.haskell-language-server-925;
 
     exe = "uracil";
     branch = "main";
