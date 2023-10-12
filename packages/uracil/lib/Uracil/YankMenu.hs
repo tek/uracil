@@ -9,7 +9,7 @@ import Ribosome.Api (vimGetCurrentWindow, windowGetWidth)
 import Ribosome.Data.ScratchOptions (ScratchOptions (..))
 import Ribosome.Menu (
   Filter (Fuzzy),
-  Mappings,
+  MenuApp,
   MenuItem,
   MenuWidget,
   ModalState,
@@ -75,7 +75,7 @@ yankMenuItems :: Int -> [Yank] -> [MenuItem Ident]
 yankMenuItems width yanks' =
   uncurry (menuItem width) <$> zip yanks' [(0 :: Int)..]
 
-yankMenuMappings :: Mappings (ModalState Ident) r YankAction
+yankMenuMappings :: MenuApp (ModalState Ident) r YankAction
 yankMenuMappings =
   [("p", menuPaste), ("P", menuPpaste), ("y", menuYank)]
 

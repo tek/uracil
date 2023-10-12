@@ -7,7 +7,6 @@
 
   outputs = {ribosome, ...}: ribosome.lib.pro ({config, ...}: {
     depsFull = [ribosome];
-    compiler = "ghc94";
     compat.enable = false;
     hackage.versionFile = "ops/version.nix";
 
@@ -26,7 +25,7 @@
         enable = true;
         package = {
           name = "prelate";
-          version = "^>= 0.6";
+          version = ">= 0.6 && < 0.8";
         };
         module = "Prelate";
       };

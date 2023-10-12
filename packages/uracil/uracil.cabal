@@ -90,7 +90,7 @@ library
     , polysemy
     , polysemy-chronos
     , polysemy-plugin
-    , prelate ==0.6.*
+    , prelate >=0.6 && <0.8
     , prettyprinter
     , ribosome
     , ribosome-menu
@@ -144,7 +144,7 @@ executable uracil
       base ==4.*
     , polysemy
     , polysemy-plugin
-    , prelate ==0.6.*
+    , prelate >=0.6 && <0.8
     , uracil
   mixins:
       base hiding (Prelude)
@@ -206,7 +206,7 @@ test-suite uracil-test
     , polysemy
     , polysemy-plugin
     , polysemy-test
-    , prelate ==0.6.*
+    , prelate >=0.6 && <0.8
     , ribosome
     , ribosome-menu
     , ribosome-test
