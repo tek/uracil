@@ -1,10 +1,9 @@
 module Uracil.Paste where
 
-import Chiasma.Data.Ident (Ident, generateIdent)
+import Chiasma.Data.Ident (Ident)
 import qualified Chronos
 import Conc (Lock, lock, lockOrSkip)
 import Control.Monad.Extra (andM)
-import Data.List (notElem)
 import qualified Data.Text as Text (isInfixOf)
 import Exon (exon)
 import qualified Log
@@ -23,24 +22,24 @@ import Ribosome (
   pluginLogReports,
   resumeReport,
   )
-import Ribosome.Api (getregLines, getregtype, normal, redraw, undo, unnamedRegister, vimGetOption, visualModeActive)
+import Ribosome.Api (normal, redraw, undo, unnamedRegister, vimGetOption, visualModeActive)
 import Ribosome.Register (Register, registerRepr)
 import qualified Ribosome.Register as Register (Register (..))
 import qualified Ribosome.Scratch as Scratch
 import qualified Ribosome.Settings as Settings
 import qualified Time
 
+import Uracil.Clipboard (syncClipboard)
 import qualified Uracil.Data.Env as Env
 import Uracil.Data.Env (Env)
 import Uracil.Data.Paste (Paste (Paste))
 import Uracil.Data.PasteLock (PasteLock)
 import Uracil.Data.Yank (Yank)
-import qualified Uracil.Data.Yank as Yank (content)
 import Uracil.Data.YankCommand (YankCommand)
 import Uracil.Data.YankError (YankError)
 import qualified Uracil.Data.YankError as YankError (YankError (EmptyHistory))
 import qualified Uracil.Settings as Settings (pasteTimeout, pasteTimeoutMillis)
-import Uracil.Yank (allYanks, loadYank, setCommand, storeYank, yankByIdent, yankByIndex, yanks)
+import Uracil.Yank (loadYank, setCommand, yankByIdent, yankByIndex, yanks)
 import Uracil.YankScratch (deleteYankScratch, ensureYankScratch, selectYankInScratch)
 
 defaultRegister ::
@@ -197,7 +196,7 @@ logPaste update index visual yank =
       if visual then "visual" else "normal"
 
 insertPaste ::
-  Members [Scratch, AtomicState Env, Stop YankError, Stop Report, Log, ChronosTime, Async, Embed IO] r =>
+  Members [Scratch, AtomicState Env, Stop YankError, Stop Report, Log, ChronosTime, Async, Input Ident] r =>
   Members [Settings !! SettingError, Settings, Rpc] r =>
   Bool ->
   (Yank -> Sem r ()) ->
@@ -210,46 +209,14 @@ insertPaste isUpdate paster index = do
   paster yank
   scratch <- ensureYankScratch
   updated <- Time.now
-  ident <- generateIdent
+  ident <- input
   atomicModify' (#paste ?~ Paste ident index updated scratch.id visual)
   selectYankInScratch scratch index
   redraw
   void (async (waitAndCancelPaste ident))
 
-pullRegister ::
-  Members [Rpc, AtomicState Env, Log, Embed IO] r =>
-  Register ->
-  NonEmpty Text ->
-  Sem r ()
-pullRegister register content = do
-  tpe <- getregtype register
-  storeYank tpe register "y" content
-
-fetchClipboard ::
-  Members [Rpc, AtomicState Env, Log, Embed IO] r =>
-  [NonEmpty Text] ->
-  Maybe (NonEmpty Text) ->
-  Register ->
-  Sem r ()
-fetchClipboard lastTwoYanks skip reg =
-  traverse_ check . nonEmpty =<< getregLines reg
-  where
-    check content =
-      when (freshYank content) (pullRegister reg content)
-    freshYank a =
-      a /= ("" :| []) && notElem a lastTwoYanks && notElem a skip
-
-syncClipboard ::
-  Members [Rpc, AtomicState Env, Log, Embed IO] r =>
-  Sem r ()
-syncClipboard = do
-  lastTwoYanks <- take 2 . fmap (.content) <$> allYanks
-  skip <- atomicGets (.skip)
-  atomicModify' (#skip .~ Nothing)
-  traverse_ @[] (fetchClipboard lastTwoYanks skip) [Register.Special "*", Register.Special "\""]
-
 repaste ::
-  Members [Scratch, AtomicState Env, Stop YankError, Stop Report, Log, ChronosTime, Async, Embed IO] r =>
+  Members [Scratch, AtomicState Env, Stop YankError, Stop Report, Log, ChronosTime, Async, Input Ident] r =>
   Members [Settings !! SettingError, Settings, Rpc] r =>
   (Yank -> Sem r ()) ->
   Paste ->
@@ -268,15 +235,15 @@ repaste paster (Paste _ index _ _ visual) = do
       when visual (normal "gv")
 
 startPaste ::
-  Members [Scratch, AtomicState Env, Stop YankError, Stop Report, Log, ChronosTime, Async, Embed IO] r =>
+  Members [Scratch, AtomicState Env, Stop YankError, Stop Report, Log, ChronosTime, Async, Input Ident] r =>
   Members [Settings !! SettingError, Settings, Rpc] r =>
   Maybe YankCommand ->
   (Yank -> Sem r ()) ->
   Sem r ()
-startPaste command paster =
-  deleteYankScratch *>
-  syncClipboard *>
-  setCommand command *>
+startPaste command paster = do
+  deleteYankScratch
+  syncClipboard
+  setCommand command
   insertPaste False paster 0
 
 type PasteStack =
@@ -290,7 +257,7 @@ type PasteStack =
     Log,
     ChronosTime,
     Async,
-    Embed IO
+    Input Ident
   ]
 
 pasteRequest ::
@@ -299,9 +266,7 @@ pasteRequest ::
   (Yank -> Sem (Lock : Stop YankError : Scratch : Settings : Rpc : Stop Report : r) ()) ->
   Handler r ()
 pasteRequest commands paster =
-  pluginLogReports $
-  mapReport @YankError $
-  tag $ lock do
+  pluginLogReports $ mapReport @YankError $ tag $ lock do
     maybe (startPaste commands paster) (repaste paster) =<< currentPaste
 
 uraPasteFor ::

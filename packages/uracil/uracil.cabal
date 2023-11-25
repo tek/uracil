@@ -27,6 +27,7 @@ source-repository head
 
 library
   exposed-modules:
+      Uracil.Clipboard
       Uracil.ContextPaste
       Uracil.Data.Env
       Uracil.Data.Paste
@@ -36,6 +37,7 @@ library
       Uracil.Data.YankCommand
       Uracil.Data.YankError
       Uracil.Diag
+      Uracil.Interpreter.InputIdent
       Uracil.Menu
       Uracil.Paste
       Uracil.Plugin
@@ -92,6 +94,7 @@ library
     , polysemy-plugin
     , prelate >=0.6 && <0.8
     , prettyprinter
+    , random
     , ribosome
     , ribosome-menu
   mixins:

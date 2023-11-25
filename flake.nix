@@ -45,6 +45,7 @@
           "exon"
           "extra"
           "polysemy-chronos"
+          "random"
           "ribosome"
           "ribosome-menu"
           "prettyprinter"

@@ -22,17 +22,20 @@ import Ribosome (
   )
 import Ribosome.Menu (ModalWindowMenus, NvimMenus, interpretMenus, interpretWindowMenu)
 
+import Uracil.Clipboard (syncClipboard)
 import Uracil.Data.Env (Env)
 import Uracil.Data.PasteLock (PasteLock)
 import Uracil.Diag (uraDiag)
-import Uracil.Paste (PasteStack, syncClipboard, uraPaste, uraPasteFor, uraPpaste, uraPpasteFor, uraStopPaste)
+import Uracil.Interpreter.InputIdent (interpretInputIdentRandom)
+import Uracil.Paste (PasteStack, uraPaste, uraPasteFor, uraPpaste, uraPpasteFor, uraStopPaste)
 import Uracil.Yank (uraYank)
 import Uracil.YankMenu (uraYankMenu, uraYankMenuFor)
 
 type UracilStack =
   [
     Lock @@ PasteLock,
-    AtomicState Env
+    AtomicState Env,
+    Input Ident
   ]
 
 type UracilProdStack =
@@ -60,7 +63,7 @@ handlers =
   ]
 
 prepare ::
-  Members [Rpc !! RpcError, AtomicState Env, Log, Embed IO] r =>
+  Members [Rpc !! RpcError, AtomicState Env, Log, Input Ident] r =>
   Sem r ()
 prepare =
   syncClipboard !! \ e -> Log.error [exon|Couldn't sync the clipboard: #{rpcError e}|]
@@ -69,6 +72,7 @@ interpretUracilStack ::
   Members [Rpc !! RpcError, Log, Resource, Mask, Race, Async, Embed IO] r =>
   InterpretersFor UracilStack r
 interpretUracilStack =
+  interpretInputIdentRandom .
   interpretAtomic def .
   interpretLockReentrant . untag
 

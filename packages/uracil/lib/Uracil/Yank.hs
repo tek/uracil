@@ -1,6 +1,6 @@
 module Uracil.Yank where
 
-import Chiasma.Data.Ident (Ident, generateIdent, sameIdent)
+import Chiasma.Data.Ident (Ident, sameIdent)
 import Data.List.Extra (nubOrdOn)
 import qualified Data.Text as Text
 import Exon (exon)
@@ -28,20 +28,20 @@ validRegister _ =
   False
 
 storeYank ::
-  Members [AtomicState Env, Log, Embed IO] r =>
+  Members [AtomicState Env, Log, Input Ident] r =>
   RegisterType ->
   Register ->
   YankCommand ->
   NonEmpty Text ->
   Sem r ()
 storeYank regtype register operator content = do
-  ident <- generateIdent
+  ident <- input
   let yank = Yank ident register regtype operator content
   Log.debug [exon|store: #{show yank}|]
   atomicModify' \ s -> s { Env.yanks = nubOrdOn YankDup (yank : s.yanks) }
 
 skipEvent ::
-  Members [Settings !! SettingError, AtomicState Env, Log, Embed IO] r =>
+  Members [Settings !! SettingError, AtomicState Env, Log, Input Ident] r =>
   [Text] ->
   Sem r ()
 skipEvent content = do
@@ -49,14 +49,19 @@ skipEvent content = do
   resume_ (Settings.update Settings.skipYank False)
 
 storeEvent ::
-  Members [Settings !! SettingError, AtomicState Env, Stop YankError, Log, Embed IO] r =>
+  Members [Settings !! SettingError, AtomicState Env, Stop YankError, Log, Input Ident] r =>
   RegEvent ->
   Sem r ()
-storeEvent (RegEvent _ operator content register regtype) | validRegister register =
-  ifM (Settings.or False Settings.skipYank) (skipEvent content) $
-  storeYank regtype register operator =<< stopNote YankError.EmptyEvent (nonEmpty content)
-storeEvent _ =
-  pure ()
+storeEvent (RegEvent _ operator content register regtype)
+  | validRegister register
+  = ifM do
+      Settings.or False Settings.skipYank
+    do
+      skipEvent content
+    do
+      storeYank regtype register operator =<< stopNote YankError.EmptyEvent (nonEmpty content)
+  | otherwise
+  = unit
 
 eventValid ::
   Member (AtomicState Env) r =>
@@ -65,14 +70,14 @@ eventValid =
   isNothing <$> atomicGets (.paste)
 
 storeEventIfValid ::
-  Members [Settings !! SettingError, AtomicState Env, Stop YankError, Log, Embed IO] r =>
+  Members [Settings !! SettingError, AtomicState Env, Stop YankError, Log, Input Ident] r =>
   RegEvent ->
   Sem r ()
 storeEventIfValid =
   whenM eventValid . storeEvent
 
 uraYank ::
-  Members [Settings !! SettingError, Rpc !! RpcError, AtomicState Env, Log, Embed IO] r =>
+  Members [Settings !! SettingError, Rpc !! RpcError, AtomicState Env, Log, Input Ident] r =>
   Handler r ()
 uraYank =
   mapReport @YankError do
