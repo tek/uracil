@@ -8,13 +8,13 @@ import Ribosome (Handler, Report, Rpc, RpcError, ScratchId (ScratchId), SettingE
 import Ribosome.Api (vimGetCurrentWindow, windowGetWidth)
 import Ribosome.Data.ScratchOptions (ScratchOptions (..))
 import Ribosome.Menu (
-  Filter (Fuzzy),
   MenuApp,
   MenuItem,
   MenuWidget,
   ModalState,
   ModalWindowMenus,
   WindowMenu,
+  fuzzy,
   modal,
   simpleMenuItem,
   staticWindowMenu,
@@ -105,7 +105,7 @@ yankMenuWith ::
 yankMenuWith operators = do
   width <- windowGetWidth =<< vimGetCurrentWindow
   items <- stopNote YankError.EmptyHistory . nonEmpty . yankMenuItems width =<< yanksFor operators
-  result <- mapReport @RpcError $ staticWindowMenu (toList items) (modal Fuzzy) (def & #items .~ scratchOptions) yankMenuMappings
+  result <- mapReport @RpcError $ staticWindowMenu (toList items) (modal fuzzy) (def & #items .~ scratchOptions) yankMenuMappings
   handleResult yankAction result
   where
     scratchOptions =
