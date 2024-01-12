@@ -13,6 +13,7 @@ import qualified Ribosome.Scratch as Scratch
 import qualified Uracil.Data.Env as Env
 import Uracil.Data.Env (Env)
 import qualified Uracil.Data.Paste as Paste
+import Uracil.Data.Paste (Paste (Paste))
 import qualified Uracil.Data.Yank as Yank (content)
 import qualified Uracil.Data.YankError as YankError (YankError (EmptyHistory))
 import Uracil.Data.YankError (YankError)
@@ -109,18 +110,25 @@ showYankScratch = do
 
 selectYankInScratch ::
   Member Rpc r =>
-  ScratchState ->
   Int ->
+  ScratchState ->
   Sem r ()
-selectYankInScratch scr line =
+selectYankInScratch line scr =
   setLine (scr ^. #window) line *> moveSign line
 
 ensureYankScratch ::
   Members [Rpc, Scratch, AtomicState Env, Stop YankError, Stop Report] r =>
-  Sem r ScratchState
-ensureYankScratch = do
-  existing <- fmap join . traverse (Scratch.find . (.scratch)) =<< atomicGets (.paste)
-  maybe showYankScratch pure existing
+  Sem r (Maybe ScratchState)
+ensureYankScratch =
+  atomicGets (.paste) >>= \case
+    Just Paste {scratch = Just prev} -> do
+      check =<< Scratch.find prev
+    Just Paste {scratch = Nothing} ->
+      pure Nothing
+    Nothing ->
+      Just <$> showYankScratch
+  where
+    check = fmap Just . fromMaybeA showYankScratch
 
 deleteYankScratch ::
   Member Scratch r =>

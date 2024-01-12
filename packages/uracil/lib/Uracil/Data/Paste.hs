@@ -9,7 +9,7 @@ data Paste =
     ident :: Ident,
     index :: Int,
     updated :: Chronos.Time,
-    scratch :: ScratchId,
+    scratch :: Maybe ScratchId,
     visual :: Bool
   }
   deriving stock (Eq, Show)

@@ -22,7 +22,7 @@ import Ribosome (
   pluginLogReports,
   resumeReport,
   )
-import Ribosome.Api (normal, redraw, undo, unnamedRegister, vimGetOption, visualModeActive)
+import Ribosome.Api (normal, redraw, undo, unnamedRegister, vimGetOption, visualModeActive, nvimCallFunction)
 import Ribosome.Register (Register, registerRepr)
 import qualified Ribosome.Register as Register (Register (..))
 import qualified Ribosome.Scratch as Scratch
@@ -195,6 +195,12 @@ logPaste update index visual yank =
     visualT =
       if visual then "visual" else "normal"
 
+inCommandLineWindow ::
+  Member Rpc r =>
+  Sem r Bool
+inCommandLineWindow =
+  (/= "") <$> nvimCallFunction @Text "getcmdwintype" []
+
 insertPaste ::
   Members [Scratch, AtomicState Env, Stop YankError, Stop Report, Log, ChronosTime, Async, Input Ident] r =>
   Members [Settings !! SettingError, Settings, Rpc] r =>
@@ -207,11 +213,11 @@ insertPaste isUpdate paster index = do
   yank <- yankByIndex index
   logPaste isUpdate index visual yank
   paster yank
-  scratch <- ensureYankScratch
+  scratch <- ifM inCommandLineWindow (pure Nothing) ensureYankScratch
   updated <- Time.now
   ident <- input
-  atomicModify' (#paste ?~ Paste ident index updated scratch.id visual)
-  selectYankInScratch scratch index
+  atomicModify' (#paste ?~ Paste ident index updated ((.id) <$> scratch) visual)
+  traverse_ (selectYankInScratch index) scratch
   redraw
   void (async (waitAndCancelPaste ident))
 
