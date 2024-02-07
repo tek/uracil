@@ -10,7 +10,9 @@ import qualified Log
 import Polysemy.Chronos (ChronosTime)
 import Polysemy.Time (MilliSeconds, convert)
 import Ribosome (
+  CommandHandler (..),
   Handler,
+  MsgpackDecode,
   Report,
   Rpc,
   RpcError,
@@ -22,7 +24,7 @@ import Ribosome (
   pluginLogReports,
   resumeReport,
   )
-import Ribosome.Api (normal, redraw, undo, unnamedRegister, vimGetOption, visualModeActive, nvimCallFunction)
+import Ribosome.Api (normal, nvimCallFunction, redraw, undo, unnamedRegister, vimGetOption, visualModeActive)
 import Ribosome.Register (Register, registerRepr)
 import qualified Ribosome.Register as Register (Register (..))
 import qualified Ribosome.Scratch as Scratch
@@ -42,6 +44,21 @@ import qualified Uracil.Settings as Settings (pasteTimeout, pasteTimeoutMillis)
 import Uracil.Yank (loadYank, setCommand, yankByIdent, yankByIndex, yanks)
 import Uracil.YankScratch (deleteYankScratch, ensureYankScratch, selectYankInScratch)
 
+newtype VRegister =
+  VRegister Register
+  deriving stock (Eq, Show, Generic)
+  deriving newtype (MsgpackDecode)
+
+instance {-# overlapping #-} CommandHandler state b => CommandHandler state (VRegister -> b) where
+  commandOptions =
+    second ("v:register" :) (commandOptions @state @b)
+
+data Paster r =
+  Paster {
+    cmd :: Text,
+    paste :: Yank -> Sem r ()
+  }
+
 defaultRegister ::
   Member Rpc r =>
   Sem r Register
@@ -55,28 +72,34 @@ defaultRegister =
     decide _ =
       "\""
 
+nativePaste ::
+  Member (Rpc !! e) r =>
+  Register ->
+  Text ->
+  Sem r ()
+nativePaste register cmd =
+  resume_ (noautocmd $ normal (registerRepr register <> cmd))
+
 pasteWith ::
   Members [Rpc !! e, Rpc, Log] r =>
   Text ->
-  Yank ->
-  Sem r ()
-pasteWith cmd yank = do
-  register <- defaultRegister
-  loadYank register yank
-  resume_ (noautocmd $ normal (registerRepr register <> cmd))
-  loadYank unnamedRegister yank
+  Paster r
+pasteWith cmd =
+  Paster cmd \ yank -> do
+    register <- defaultRegister
+    loadYank register yank
+    nativePaste register cmd
+    loadYank unnamedRegister yank
 
 paste ::
   Members [Rpc !! e, Rpc, Log] r =>
-  Yank ->
-  Sem r ()
+  Paster r
 paste =
   pasteWith "p"
 
 ppaste ::
   Members [Rpc !! e, Rpc, Log] r =>
-  Yank ->
-  Sem r ()
+  Paster r
 ppaste =
   pasteWith "P"
 
@@ -85,14 +108,14 @@ pasteIdent ::
   Ident ->
   Sem r ()
 pasteIdent =
-  paste <=< yankByIdent
+  paste.paste <=< yankByIdent
 
 ppasteIdent ::
   Members [AtomicState Env, Rpc !! e, Rpc, Log, Stop YankError] r =>
   Ident ->
   Sem r ()
 ppasteIdent =
-  ppaste <=< yankByIdent
+  ppaste.paste <=< yankByIdent
 
 currentPaste ::
   Member (AtomicState Env) r =>
@@ -205,14 +228,14 @@ insertPaste ::
   Members [Scratch, AtomicState Env, Stop YankError, Stop Report, Log, ChronosTime, Async, Input Ident] r =>
   Members [Settings !! SettingError, Settings, Rpc] r =>
   Bool ->
-  (Yank -> Sem r ()) ->
+  Paster r ->
   Int ->
   Sem r ()
 insertPaste isUpdate paster index = do
   visual <- visualModeActive
   yank <- yankByIndex index
   logPaste isUpdate index visual yank
-  paster yank
+  paster.paste yank
   scratch <- ifM inCommandLineWindow (pure Nothing) ensureYankScratch
   updated <- Time.now
   ident <- input
@@ -224,7 +247,7 @@ insertPaste isUpdate paster index = do
 repaste ::
   Members [Scratch, AtomicState Env, Stop YankError, Stop Report, Log, ChronosTime, Async, Input Ident] r =>
   Members [Settings !! SettingError, Settings, Rpc] r =>
-  (Yank -> Sem r ()) ->
+  Paster r ->
   Paste ->
   Sem r ()
 repaste paster (Paste _ index _ _ visual) = do
@@ -244,7 +267,7 @@ startPaste ::
   Members [Scratch, AtomicState Env, Stop YankError, Stop Report, Log, ChronosTime, Async, Input Ident] r =>
   Members [Settings !! SettingError, Settings, Rpc] r =>
   Maybe YankCommand ->
-  (Yank -> Sem r ()) ->
+  Paster r ->
   Sem r ()
 startPaste command paster = do
   deleteYankScratch
@@ -269,11 +292,24 @@ type PasteStack =
 pasteRequest ::
   Members PasteStack r =>
   Maybe YankCommand ->
-  (Yank -> Sem (Lock : Stop YankError : Scratch : Settings : Rpc : Stop Report : r) ()) ->
+  (Paster (Lock : Stop YankError : Scratch : Settings : Rpc : Stop Report : r)) ->
   Handler r ()
 pasteRequest commands paster =
   pluginLogReports $ mapReport @YankError $ tag $ lock do
     maybe (startPaste commands paster) (repaste paster) =<< currentPaste
+
+pasteRequestCmd ::
+  Members PasteStack r =>
+  VRegister ->
+  Maybe YankCommand ->
+  (Paster (Lock : Stop YankError : Scratch : Settings : Rpc : Stop Report : r)) ->
+  Handler r ()
+pasteRequestCmd (VRegister reg@(Register.Named _)) _ paster =
+  nativePaste reg paster.cmd
+pasteRequestCmd (VRegister reg@(Register.Numbered _)) _ paster =
+  nativePaste reg paster.cmd
+pasteRequestCmd _ commands paster =
+  pasteRequest commands paster
 
 uraPasteFor ::
   Members PasteStack r =>
@@ -294,6 +330,22 @@ uraPaste ::
   Handler r ()
 uraPaste =
   pasteRequest Nothing paste
+
+uraPasteCmd ::
+  Members PasteStack r =>
+  VRegister ->
+  Maybe YankCommand ->
+  Handler r ()
+uraPasteCmd regOverride commands =
+  pasteRequestCmd regOverride commands paste
+
+uraPpasteCmd ::
+  Members PasteStack r =>
+  VRegister ->
+  Maybe YankCommand ->
+  Handler r ()
+uraPpasteCmd regOverride commands =
+  pasteRequestCmd regOverride commands ppaste
 
 uraPpaste ::
   Members PasteStack r =>

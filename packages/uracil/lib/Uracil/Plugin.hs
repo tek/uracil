@@ -27,7 +27,16 @@ import Uracil.Data.Env (Env)
 import Uracil.Data.PasteLock (PasteLock)
 import Uracil.Diag (uraDiag)
 import Uracil.Interpreter.InputIdent (interpretInputIdentRandom)
-import Uracil.Paste (PasteStack, uraPaste, uraPasteFor, uraPpaste, uraPpasteFor, uraStopPaste)
+import Uracil.Paste (
+  PasteStack,
+  uraPaste,
+  uraPasteCmd,
+  uraPasteFor,
+  uraPpaste,
+  uraPpasteCmd,
+  uraPpasteFor,
+  uraStopPaste,
+  )
 import Uracil.Yank (uraYank)
 import Uracil.YankMenu (uraYankMenu, uraYankMenuFor)
 
@@ -52,9 +61,13 @@ handlers =
   [
     rpcCommand "UraDiag" Async uraDiag,
     rpcFunction "UraPaste" Async uraPaste,
+    rpcCommand "UraPaste" Async uraPasteCmd,
     rpcFunction "UraPpaste" Async uraPpaste,
+    rpcCommand "UraPpaste" Async uraPpasteCmd,
     rpcFunction "UraPasteFor" Async uraPasteFor,
+    rpcCommand "UraPasteFor" Async uraPasteFor,
     rpcFunction "UraPpasteFor" Async uraPpasteFor,
+    rpcCommand "UraPpasteFor" Async uraPpasteFor,
     rpcCommand "UraYankMenu" Async uraYankMenu,
     rpcCommand "UraYankMenuFor" Async uraYankMenuFor,
     -- This must be Sync because the handler reads the variable `v:event`, which is only set while the autocmd is active

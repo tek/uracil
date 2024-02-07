@@ -8,6 +8,8 @@ import Ribosome.Api (
   currentBufferContent,
   getreg,
   normal,
+  nvimInput,
+  nvimSetKeymap,
   setCurrentBufferContent,
   setCurrentCursor,
   setCurrentLine,
@@ -18,14 +20,17 @@ import Ribosome.Api (
   )
 import qualified Ribosome.Register as Register (Register (Special), RegisterType (Line))
 import qualified Ribosome.Settings as Settings
-import Ribosome.Test (assertWait, resumeTestError)
+import Ribosome.Test (assertWait, resumeTestError, testPluginConf)
+import Ribosome.Test.Wait ((<--))
 import Test.Tasty (TestTree, testGroup)
 
+import qualified Uracil.Data.Env as Env
 import Uracil.Data.RegEvent (RegEvent (RegEvent))
 import Uracil.Data.Yank (Yank (Yank))
 import Uracil.Paste (uraPaste, uraPasteFor, uraPpaste, uraStopPaste)
+import Uracil.Plugin (UracilProdStack, handlers, interpretUracilProdStack)
 import qualified Uracil.Settings as Settings (pasteTimeout)
-import Uracil.Test.Run (uraTest)
+import Uracil.Test.Run (testConfig, uraTest)
 import Uracil.Yank (storeEvent)
 
 item1 :: NonEmpty Text
@@ -147,6 +152,19 @@ test_commandPaste =
     checkContent ls =
       assertWait currentBufferContent (assertEq ("" : ls))
 
+test_commandRegister :: UnitTest
+test_commandRegister = do
+  testPluginConf @UracilProdStack (testConfig def) interpretUracilProdStack handlers do
+    nvimSetKeymap "n" "p" "<cmd>UraPaste<cr>" mempty
+    setCurrentBufferContent ["1", "2", "3"]
+    assertEq 0 . length =<< atomicGets (.yanks)
+    void (nvimInput "\"fyy")
+    setregLine unnamedRegister ["4"]
+    void (nvimInput "\"fp")
+    ["1", "1", "2", "3"] <-- currentBufferContent
+    void (nvimInput "p")
+    ["1", "1", "4", "2", "3"] <-- currentBufferContent
+
 test_paste :: TestTree
 test_paste =
   testGroup "paste" [
@@ -155,5 +173,6 @@ test_paste =
     unitTest "visual mode" test_visualPaste,
     unitTest "cancel" test_cancel,
     unitTest "sync the * register" test_syncSelection,
-    unitTest "paste from a yank list for a specific command" test_commandPaste
+    unitTest "paste from a yank list for a specific command" test_commandPaste,
+    unitTest "use register from command/mapping prefix" test_commandRegister
   ]

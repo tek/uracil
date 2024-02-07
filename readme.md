@@ -25,10 +25,10 @@ Since the plugin is written in Haskell, its executable has to be fetched or buil
 # Recommended Mappings
 
 ```vim
-nnoremap p <cmd>call UraPaste()<cr>
-xnoremap p <cmd>call UraPaste()<cr>
-nnoremap P <cmd>call UraPpaste()<cr>
-xnoremap P <cmd>call UraPpaste()<cr>
+nnoremap p <cmd>UraPaste<cr>
+xnoremap p <cmd>UraPaste<cr>
+nnoremap P <cmd>UraPpaste<cr>
+xnoremap P <cmd>UraPpaste<cr>
 ```
 
 # Settings
@@ -102,7 +102,7 @@ The pasted history entry will be moved to the beginning of the list.
 to use the `<cmd>` pseudokey in the mapping:
 
 ```vim
-xnoremap p <cmd>call UraPaste()<cr>
+xnoremap p <cmd>UraPaste<cr>
 ```
 
 Using `:` here would start command line mode, which would interfere with the
